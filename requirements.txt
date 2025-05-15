@@ -1,0 +1,14 @@
+Flask>=2.0.0
+Flask-SQLAlchemy>=2.5.0
+Flask-Migrate>=3.0.0
+Flask-Mail>=0.9.0
+python-dotenv>=0.19.0
+itsdangerous>=2.0.0
+SQLAlchemy>=1.4.0
+# For thumbnail generation (add when implementing thumbnail_service.py)
+# trimesh>=3.9.0
+# For password hashing if using individual staff accounts later
+# passlib>=1.7.0
+# For WSGI server (e.g., Waitress for Windows, Gunicorn for Linux/macOS)
+# waitress
+# gunicorn 

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}3D Print System{% endblock %}</title>
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/build.css') }}"> -->
+    <!-- <script src="{{ url_for('static', filename='js/alpine.min.js') }}" defer></script> -->
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <header>
+        <!-- Basic navigation or header content can go here -->
+        <h1><a href="{{ '#' #url_for('main.index') }}">3D Print Service</a></h1>
+    </header>
+
+    <main>
+        {% block content %}
+        <p>Welcome to the 3D Print System!</p>
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; {{ "now" | date("%Y") }} Your Institution Name</p>
+    </footer>
+
+    {% block scripts_extra %}{% endblock %}
+</body>
+</html> 
