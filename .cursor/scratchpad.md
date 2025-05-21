@@ -5,7 +5,13 @@ This project aims to develop a Flask-based 3D print job management system tailor
 
 ## Key Challenges and Analysis
 1.  **Multi-Computer File & Database Access:** Ensuring consistent and reliable file access across two computers via shared network storage (`masterplan.md` Section 4.1.1) and managing the SQLite database access through a single server instance to prevent corruption (`masterplan.md` Section 4.1.2). The choice of a single Flask server simplifies database concurrency.
-2.  **Direct File Opening:** Implementing the custom URL protocol (`3dprint://`) and the `SlicerOpener.py` helper application (`masterplan.md` Section 4.2, 4.3). This requires careful registry modification on staff machines and security validation within the helper script to prevent opening arbitrary files.
+2.  **Direct File Opening (`SlicerOpener.py`):** Implementing the custom URL protocol (`3dprint://`) and the `SlicerOpener.py` helper application (`masterplan.md` Section 4.2, 4.3).
+    *   **Security:** Requires robust security validation within `SlicerOpener.py` to strictly ensure only files within designated shared storage subdirectories can be opened, preventing path traversal or other unauthorized file access. This is a V1 priority.
+    *   **Error Handling & User Feedback:** `SlicerOpener.py` must provide clear, user-facing error messages (e.g., via simple GUI popups) for issues like file not found, network errors, access denied, or security validation failures. This is a V1 priority.
+    *   **Logging:** `SlicerOpener.py` should perform basic local logging of file access attempts (URI received, success/failure, reason for failure). This is a V1 priority.
+    *   **Network Dependency:** The feature inherently depends on a stable network connection to the shared storage. Offline access is out of scope for V1; manual file copying is the fallback if the network or protocol handler fails. This is an accepted V1 trade-off.
+    *   **File Locking/Concurrency:** True file locking to prevent simultaneous edits by different staff members is complex. Given the anticipated workflow and small team size, this is a V2 consideration. Slicer software might offer some inherent protection, but this is not guaranteed. The risk of data overwrite in V1 is low but acknowledged.
+    *   **Installation & Updates:** `SlicerOpener.py` and its associated protocol registration require manual installation on each staff computer. Updates will also be manual for V1.
 3.  **File Lifecycle Management:** Accurately tracking original student uploads versus staff-modified/sliced files, ensuring the correct "authoritative" file is used at each job stage, and managing file movements between status-based directories (e.g., `Uploaded/`, `Pending/`, `ReadyToPrint/`) (`masterplan.md` Section 3.4). Standardized file naming is crucial.
 4.  **Email Notifications & Student Confirmation:** Implementing reliable email sending for various job stages and managing the token-based student confirmation workflow for print jobs (`masterplan.md` Sections 2.1, 3.3, 3.4).
 5.  **Thumbnail Generation:** Integrating a library like Trimesh for thumbnail generation and gracefully handling potential failures (`masterplan.md` Section 2.1, 3.1 services/thumbnail_service.py).
@@ -61,10 +67,10 @@ This project aims to develop a Flask-based 3D print job management system tailor
     *   Implement email notification for job completion.
     *   Success Criteria: Staff can transition jobs through Printing, Completed, PaidPickedUp statuses. Files are moved. Completion email sent.
 8.  **Task 8: Custom Protocol Handler & "Open File" Feature** (Ref: masterplan.md Section 5.1.8, 4.2, 4.3)
-    *   Develop `SlicerOpener.py` script (including path validation).
-    *   Document registry setup for `3dprint://` protocol.
+    *   Develop `SlicerOpener.py` script, including robust security validation (preventing path traversal and ensuring files are within the authoritative storage base path), clear user-facing error handling (e.g., GUI popups for errors like file not found, access denied, validation failure), and basic local file logging of access attempts (success/failure).
+    *   Document registry setup for `3dprint://` protocol (e.g., provide a `.reg` file and manual instructions).
     *   Integrate "Open File" button in staff dashboard to generate `3dprint://` links.
-    *   Success Criteria: `SlicerOpener.py` successfully opens files in slicer when called via protocol. "Open File" button works on dashboard. Path validation in script prevents unauthorized access.
+    *   Success Criteria: `SlicerOpener.py` successfully opens files from the designated shared storage in the appropriate slicer software when called via the `3dprint://` protocol. Path validation in the script prevents unauthorized access and provides clear error feedback to the user. Access attempts (successes and failures with reasons) are logged locally by `SlicerOpener.py`.
 9.  **Task 9: UI Polish & Advanced Features** (Ref: masterplan.md Section 5.1.9)
     *   Refine dashboard UI/UX using Alpine.js for interactivity (status tabs, modals).
     *   Improve thumbnail display and error handling.
@@ -87,12 +93,30 @@ This project aims to develop a Flask-based 3D print job management system tailor
 (Executor to update with progress using Markdown TODO format: - [ ] Task Name)
 
 - [x] Task 1: Initial Project Setup & Basic Structure
-- [ ] Task 2: Shared Infrastructure Configuration
+- [x] Task 2: Shared Infrastructure Configuration
+- [ ] Task 3: Student Submission Module
+    - [x] Implement public upload form (`/submit`) with fields as specified.
+    - [ ] Implement client-side and server-side validation for form data and file uploads (type, size).
+    - [ ] Implement file saving to `storage/Uploaded/` with standardized renaming convention.
+    - [ ] Implement thumbnail generation upon successful upload (`thumbnail_service.py`).
+    - [ ] Implement success page (`/submit/success`).
 
 ## Executor's Feedback or Assistance Requests
 (Executor to fill as needed with updates, questions, or blockers.)
 
 - Task 1: Initial Project Setup & Basic Structure is complete. All directories and basic files created, database initialized with Job table, basic Flask app runs. Ready for Planner to review or assign Task 2.
+- Task 2: Shared Infrastructure Configuration is complete.
+    - `app/config.py` updated with `APP_STORAGE_ROOT` and `SLICER_PROTOCOL_BASE_PATH`.
+    - `Config.init_app` updated to create storage subdirectories using `APP_STORAGE_ROOT`.
+    - Staff setup guide created at `documentation/StaffSetupGuide.md`.
+    - Database strategy (single server instance for Flask app with SQLite) confirmed as per `masterplan.md`.
+  Ready for Planner to review or assign Task 3.
+- Task 3.1 (Student Submission Module - Implement public upload form) is complete:
+    - `app/forms.py` created with `SubmissionForm`.
+    - `app/templates/main/submit.html` created to render the form.
+    - `app/routes/main.py` updated for `/submit` GET/POST handling (POST is placeholder).
+  The form should be viewable and basic validation messages should appear. Full submission processing is pending next sub-tasks.
+  Ready for Planner to review or assign next sub-task for Task 3.
 
 ## Lessons
 (Record reusable information, fixes, or learnings here.)

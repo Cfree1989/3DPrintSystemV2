@@ -381,51 +381,102 @@ Upon initial successful upload, files are renamed to: `FirstAndLastName_PrintMet
     *   A small Python script (compiled to `.exe` using PyInstaller).
     *   Takes the `3dprint://` URL as an argument.
     *   Parses the file path from the URL.
-    *   **Crucially, it must validate the file path to ensure it points to a location within the designated shared storage area before attempting to open it.**
+    *   **Crucially, it must perform robust security validation:**
+        *   The extracted file path must be normalized and converted to an absolute path.
+        *   It must be verified to be strictly within the `AUTHORITATIVE_STORAGE_BASE_PATH` to prevent path traversal or access to unauthorized locations.
+        *   The script should log all validation attempts and their outcomes.
+    *   **User-Facing Error Handling:**
+        *   The script must provide clear, user-friendly error messages (e.g., via simple GUI dialogs using a library like `tkinter.messagebox` if compiled) for issues such as:
+            *   Invalid or missing file path in the URL.
+            *   Security validation failure.
+            *   File not found at the specified path.
+            *   Slicer executable not found or failed to launch.
+            *   Other exceptions during file opening.
+    *   **Logging:**
+        *   The script should perform local file logging for auditing and troubleshooting. Logs should include:
+            *   Timestamp of the request.
+            *   The full `3dprint://` URI received.
+            *   Result of security validation.
+            *   Success or failure of opening the file.
+            *   Any errors encountered.
     *   Launches the appropriate slicer software, passing the validated file path to it.
     *   (Future enhancement: Could check file extension to open in different slicers).
     ```python
     # SlicerOpener.py (Conceptual)
     import sys, subprocess, os # Added os module
     from urllib.parse import urlparse, parse_qs
+    # For GUI error messages (optional, example)
+    # import tkinter
+    # from tkinter import messagebox
 
     # THIS BASE PATH MUST MATCH THE SERVER'S CONFIGURATION FOR THE STORAGE DIRECTORY
     # It should ideally be read from a config file or environment variable shared with the main app.
     AUTHORITATIVE_STORAGE_BASE_PATH = "Z:\\3DPrintFiles\\storage\\" # Example: Use a raw string or escaped backslashes
 
+    def log_message(message):
+        # Basic logging to a local file. In a real app, use Python's logging module.
+        print(f"LOG: {message}") # Replace with actual file logging
+        # with open("SlicerOpener.log", "a") as log_file:
+        #     log_file.write(f"{datetime.datetime.now()}: {message}\n")
+
+    def show_error_popup(title, message):
+        log_message(f"ERROR_POPUP: {title} - {message}")
+        # This is a placeholder for a GUI popup.
+        # tkinter.Tk().withdraw() # Hide the main tkinter window
+        # messagebox.showerror(title, message)
+        print(f"ERROR_UI: {title} - {message}") # Fallback for non-GUI environments
+
     def open_in_slicer(uri):
+        log_message(f"Received URI: {uri}")
         parsed_url = urlparse(uri)
         query_params = parse_qs(parsed_url.query)
         file_path_from_url = query_params.get('path', [None])[0]
 
-        if file_path_from_url:
-            # Basic security validation:
+        if not file_path_from_url:
+            show_error_popup("Error", "No file path found in URL.")
+            log_message("Validation failed: No file path in URL.")
+            return
+
+        log_message(f"Extracted file path from URL: {file_path_from_url}")
+
+        try:
+            # Security validation:
             # 1. Normalize and make absolute
-            abs_file_path = os.path.abspath(os.path.normpath(file_path_from_url))
-            # 2. Check if it starts with the authoritative base path
-            #    Note: os.path.commonpath can also be useful here for more robust checks.
-            if not abs_file_path.lower().startswith(AUTHORITATIVE_STORAGE_BASE_PATH.lower()): # Case-insensitive check for Windows paths
-                print(f"Error: Security validation failed. Path '{file_path_from_url}' is outside the allowed storage area.")
-                # Log this attempt to a secure log file for auditing
+            normalized_path = os.path.normpath(file_path_from_url)
+            abs_file_path = os.path.abspath(normalized_path)
+            log_message(f"Normalized and absolute path: {abs_file_path}")
+
+            # 2. Check if it starts with the authoritative base path (case-insensitive for Windows)
+            # This is a critical security check.
+            if not abs_file_path.lower().startswith(AUTHORITATIVE_STORAGE_BASE_PATH.lower()):
+                error_msg = f"Security validation failed. Path '{file_path_from_url}' (resolved to '{abs_file_path}') is outside the allowed storage area ('{AUTHORITATIVE_STORAGE_BASE_PATH}')."
+                show_error_popup("Security Error", error_msg)
+                log_message(error_msg)
                 return
+            
+            log_message("Security validation passed.")
 
             # Path seems okay, proceed to open
-            slicer_exe_path = "C:\\Program Files\\PrusaSlicer\\prusa-slicer.exe" # Example
-            try:
-                print(f"Attempting to open: {abs_file_path}") # Log/print for debugging
-                subprocess.run([slicer_exe_path, abs_file_path], check=True)
-            except FileNotFoundError:
-                print(f"Error: Slicer executable not found at {slicer_exe_path}")
-            except Exception as e:
-                print(f"Error opening {abs_file_path} in slicer: {e}") # Log to a file for troubleshooting
-        else:
-            print("Error: No file path found in URL.")
+            # Ensure the file exists before attempting to open
+            if not os.path.exists(abs_file_path):
+                error_msg = f"File not found: {abs_file_path}"
+                show_error_popup("File Error", error_msg)
+                log_message(error_msg)
+                return
 
-    if __name__ == '__main__':
-        if len(sys.argv) > 1:
-            uri_argument = sys.argv[1]
-            open_in_slicer(uri_argument)
-    ```
+            slicer_exe_path = "C:\\Program Files\\PrusaSlicer\\prusa-slicer.exe" # Example
+            log_message(f"Attempting to open: {abs_file_path} with slicer: {slicer_exe_path}")
+            subprocess.run([slicer_exe_path, abs_file_path], check=True)
+            log_message(f"Successfully launched slicer for: {abs_file_path}")
+        except FileNotFoundError:
+            error_msg = f"Slicer executable not found at {slicer_exe_path}"
+            show_error_popup("Slicer Error", error_msg)
+            log_message(error_msg)
+        except Exception as e:
+            error_msg = f"Error opening {abs_file_path} in slicer: {e}"
+            show_error_popup("Opening Error", error_msg)
+            log_message(error_msg) # Log to a file for troubleshooting
+
 3.  **Web Dashboard Integration**:
     *   The "Open File" button in the dashboard generates the `3dprint://` link dynamically using `job.file_path`.
     ```html
@@ -442,7 +493,7 @@ Upon initial successful upload, files are renamed to: `FirstAndLastName_PrintMet
 5.  **Staff Approval/Rejection**: Implement modals, backend logic to move to "Pending" or "Rejected", initial email notifications.
 6.  **Student Confirmation**: Token generation, confirmation page, move to "ReadyToPrint".
 7.  **Printing Workflow**: Implement "Mark Printing", "Mark Complete", "Mark Picked Up" status changes and file movements.
-8.  **Custom Protocol Handler**: Develop and test `SlicerOpener.py` and registry setup. Integrate "Open File" button.
+8.  **Custom Protocol Handler**: Develop and test `SlicerOpener.py` (including robust security validation, user-facing error handling, and local file access logging) and registry setup. Integrate "Open File" button.
 9.  **Thumbnails & UI Polish**: Implement thumbnail generation, refine dashboard UI with Alpine.js.
 10. **Admin Controls**: Implement manual override features.
 11. **Metrics & Reporting**: Add basic reporting features.
@@ -518,4 +569,4 @@ To protect against data loss, the following manual backup procedures are recomme
     -   If `app.db` is stored on a network share that is already subject to regular, automated backups by IT, these IT backups can be relied upon for the database.
 -   **File Storage (`storage/` directory):**
     -   Staff should manually copy the entire `storage/` directory (containing all uploaded files, sliced files, and thumbnails) to a separate, secure backup location on a regular basis.
-    -   If the `storage/`
+    -   If the `storage/` directory is stored on a network share that is already subject to regular, automated backups by IT, these IT backups can be relied upon for the file storage.
