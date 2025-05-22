@@ -11,7 +11,7 @@
 <body>
     <header>
         <!-- Basic navigation or header content can go here -->
-        <h1><a href="{{ '#' #url_for('main.index') }}">3D Print Service</a></h1>
+        <h1><a href="{{ url_for('main.index') }}">3D Print Service</a></h1>
     </header>
 
     <main>
@@ -21,7 +21,7 @@
     </main>
 
     <footer>
-        <p>&copy; {{ "now" | date("%Y") }} Your Institution Name</p>
+        <p>&copy; 2024 Your Institution Name</p>
     </footer>
 
     {% block scripts_extra %}{% endblock %}

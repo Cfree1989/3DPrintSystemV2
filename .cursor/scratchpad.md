@@ -96,10 +96,137 @@ This project aims to develop a Flask-based 3D print job management system tailor
 - [x] Task 2: Shared Infrastructure Configuration
 - [ ] Task 3: Student Submission Module
     - [x] Implement public upload form (`/submit`) with fields as specified.
-    - [ ] Implement client-side and server-side validation for form data and file uploads (type, size).
+    - [x] Implement client-side and server-side validation for form data and file uploads (type, size).
+    - [x] **RESOLVED**: Fix template error in base.html preventing form display
+    - [ ] **CURRENT**: Comprehensive Form Field Updates & Enhancements
+        - [x] Phase 1: Update discipline options to match actual program offerings
+        - [x] Phase 1: Add form introduction text (user-specified exact wording)
+        - [x] Phase 1: Add print method context descriptions (Resin vs Filament)
+        - [x] Phase 1: Implement dynamic color selection (23 filament + 4 resin colors)
+        - [ ] Phase 2: Enhanced scaling question with printer specifications
+        - [ ] Phase 2: Class number format validation (ARCH 4000 pattern)
+        - [ ] Phase 3: Comprehensive testing of all form enhancements
     - [ ] Implement file saving to `storage/Uploaded/` with standardized renaming convention.
     - [ ] Implement thumbnail generation upon successful upload (`thumbnail_service.py`).
     - [ ] Implement success page (`/submit/success`).
+4.  **Task 4: Staff Dashboard - Basic View & Login** (Ref: masterplan.md Section 5.1.4, 3.4 General Staff Dashboard)
+    *   Implement basic staff login (shared password defined in config).
+    *   Create staff dashboard page (`/dashboard`) displaying jobs with "UPLOADED" status.
+    *   Implement basic job row details display.
+    *   Success Criteria: Staff can log in. Dashboard lists jobs from "UPLOADED" status.
+5.  **Task 5: Staff Approval & Rejection Workflow** (Ref: masterplan.md Section 5.1.5, 3.4 Staff Approval/Rejection UI/UX)
+    *   Implement modals for job approval (with cost calculation inputs) and rejection (with reasons).
+    *   Implement backend logic for:
+        *   Updating job status to "PENDING" or "REJECTED".
+        *   Moving files from `storage/Uploaded/` to `storage/Pending/` (if approved and sliced) or archiving/managing rejected files.
+        *   Updating `job.file_path` and `job.display_name` if sliced file becomes authoritative.
+        *   Calculating and storing `job.cost_usd` (enforcing minimum charge).
+        *   Generating `confirm_token` for approved jobs.
+    *   Implement initial email notifications for approval (pending confirmation) and rejection (`email_service.py`).
+    *   Success Criteria: Staff can approve or reject jobs. Files are moved correctly. Emails are sent. Job status and relevant fields updated in DB.
+6.  **Task 6: Student Confirmation Workflow** (Ref: masterplan.md Section 5.1.6, 3.4 Pending & ReadyToPrint statuses)
+    *   Implement confirmation page linked from approval email.
+    *   Implement token validation logic.
+    *   Implement backend logic to update job status to "READYTOPRINT" upon successful confirmation.
+    *   Implement file movement from `storage/Pending/` to `storage/ReadyToPrint/`.
+    *   Update `job.student_confirmed`, `job.student_confirmed_at`.
+    *   (Optional) Email to student confirming job is in queue.
+    *   Success Criteria: Student can confirm job via email link. Job status updates to "READYTOPRINT", file moves to correct directory.
+7.  **Task 7: Printing Workflow (Printing, Completed, PaidPickedUp)** (Ref: masterplan.md Section 5.1.7, 3.4 Printing, Completed, PaidPickedUp statuses)
+    *   Implement staff actions to "Mark Printing", "Mark Complete", "Mark Picked Up".
+    *   Implement backend logic for status changes and corresponding file movements between `storage/ReadyToPrint/`, `storage/Printing/`, `storage/Completed/`, `storage/PaidPickedUp/`.
+    *   Implement email notification for job completion.
+    *   Success Criteria: Staff can transition jobs through Printing, Completed, PaidPickedUp statuses. Files are moved. Completion email sent.
+8.  **Task 8: Custom Protocol Handler & "Open File" Feature** (Ref: masterplan.md Section 5.1.8, 4.2, 4.3)
+    *   Develop `SlicerOpener.py` script, including robust security validation (preventing path traversal and ensuring files are within the authoritative storage base path), clear user-facing error handling (e.g., GUI popups for errors like file not found, access denied, validation failure), and basic local file logging of access attempts (success/failure).
+    *   Document registry setup for `3dprint://` protocol (e.g., provide a `.reg` file and manual instructions).
+    *   Integrate "Open File" button in staff dashboard to generate `3dprint://` links.
+    *   Success Criteria: `SlicerOpener.py` successfully opens files from the designated shared storage in the appropriate slicer software when called via the `3dprint://` protocol. Path validation in the script prevents unauthorized access and provides clear error feedback to the user. Access attempts (successes and failures with reasons) are logged locally by `SlicerOpener.py`.
+9.  **Task 9: UI Polish & Advanced Features** (Ref: masterplan.md Section 5.1.9)
+    *   Refine dashboard UI/UX using Alpine.js for interactivity (status tabs, modals).
+    *   Improve thumbnail display and error handling.
+    *   Implement full Job Detail View/Modal.
+    *   Success Criteria: Dashboard is interactive and user-friendly. All job details are viewable and editable as specified.
+10. **Task 10: Administrative Controls** (Ref: masterplan.md Section 5.1.10, 3.4 Administrative Controls UI/UX)
+    *   Implement manual status override controls.
+    *   Implement file management controls (upload new version, download).
+    *   Implement option to send/suppress emails during manual overrides.
+    *   Success Criteria: Staff can perform administrative actions as specified in `masterplan.md`.
+11. **Task 11: Metrics & Reporting (Basic)** (Ref: masterplan.md Section 5.1.11, 5.6)
+    *   Implement basic dashboard stats (e.g., submission counts).
+    *   Success Criteria: Basic usage statistics are displayed on the dashboard.
+12. **Task 12: Comprehensive Testing & Refinement** (Ref: masterplan.md Section 5.1.12)
+    *   Conduct end-to-end testing of all features.
+    *   Address bugs and refine based on testing.
+    *   Success Criteria: System is stable and meets requirements defined in `masterplan.md`.
+
+## Current Status / Progress Tracking
+### Latest Planner Assessment (2024-01-XX)
+**Status**: Template blocker resolved! Ready to implement comprehensive form updates per user requirements.
+
+**Flask App Status**: ✅ Confirmed working - Flask app creates successfully without template errors.
+
+**Verification Completed**:
+- ✅ Template error appears to be resolved (Flask app creates without errors)
+- ✅ Current form structure provides good foundation for enhancements
+- ✅ Validation framework in place for new field requirements
+
+### Comprehensive Form Enhancement Plan
+
+**IMPLEMENTATION SEQUENCE**:
+
+**Phase 1: Field Content Updates (High Priority)**
+1. **Update Discipline Options**
+   - Replace current generic options with: Art, Architecture, Landscape Architecture, Interior Design, Engineering, Hobby/Personal, Other
+   - Maintain validation and error handling
+
+2. **Add Form Introduction Text**
+   - Add comprehensive intro paragraph at form beginning (exact user wording)
+   - Style appropriately with proper spacing and visual hierarchy
+
+3. **Enhanced Print Method Selection with Context**
+   - Add descriptive context for Resin vs Filament (exact user wording)
+   - Include cost and capability information in selection UI
+
+4. **Dynamic Color Selection Implementation**
+   - Create two separate color choice lists (Filament: 23 options, Resin: 4 options)
+   - Implement JavaScript to dynamically update color dropdown based on print method selection
+   - Update validation to ensure color choice matches selected print method
+
+**Phase 2: Advanced Functionality (Medium Priority)**
+5. **Enhanced Scaling Question with Printer Specifications**
+   - Replace simple radio buttons with required response mechanism
+   - Include comprehensive printer dimension information
+   - Add scaling guidance and STL/OBJ export warnings
+   - Require explicit acknowledgment of dimensional constraints
+
+6. **Class Number Format Validation**
+   - Implement regex validation for "ARCH 4000" format pattern
+   - Provide clear format examples and error messages
+   - Allow "N/A" for non-academic projects
+
+**Phase 3: Testing & Refinement (Critical)**
+7. **Comprehensive Testing**
+   - Test dynamic color switching functionality
+   - Verify all validation rules work correctly
+   - Test form submission with new field requirements
+   - Ensure client-side and server-side validation alignment
+
+**TECHNICAL IMPLEMENTATION NOTES**:
+- **Dynamic Colors**: Use Alpine.js or vanilla JavaScript to watch print method changes
+- **Validation**: Update both client-side JS and server-side validators
+- **Form Layout**: Maintain Tailwind CSS styling consistency
+- **User Experience**: Ensure smooth transitions and clear error feedback
+
+**SUCCESS CRITERIA**:
+- ✅ Form displays all new content with proper formatting
+- ✅ Dynamic color selection works seamlessly
+- ✅ All validation rules enforce new requirements
+- ✅ User experience flows smoothly through enhanced form
+- ✅ Class number format validation catches incorrect patterns
+- ✅ Scaling acknowledgment captures meaningful student responses
+
+**CONFIDENCE LEVEL**: High - Foundation is solid, changes are well-defined, implementation is straightforward
 
 ## Executor's Feedback or Assistance Requests
 (Executor to fill as needed with updates, questions, or blockers.)
@@ -117,6 +244,35 @@ This project aims to develop a Flask-based 3D print job management system tailor
     - `app/routes/main.py` updated for `/submit` GET/POST handling (POST is placeholder).
   The form should be viewable and basic validation messages should appear. Full submission processing is pending next sub-tasks.
   Ready for Planner to review or assign next sub-task for Task 3.
+- **Task 3.2 (Client-side and Server-side Validation) is COMPLETE**:
+    - Enhanced `app/forms.py` with custom `FileSizeLimit` validator (50MB max) and improved field validation
+    - Enhanced `app/templates/main/submit.html` with comprehensive JavaScript client-side validation
+    - All validation features implemented and tested successfully
+    - Client-side validation includes real-time file validation, email format checking, form submission validation, visual error feedback, error scrolling, and loading states
+    - Server-side validation includes file size limits, enhanced field validation, and improved error messages
+  **Ready for Planner to assign Task 3.3 - File saving implementation**.
+
+- **Task 3: Phase 1 Form Field Updates - COMPLETED ✅**:
+    **Successfully Implemented**:
+    - ✅ **Updated Discipline Options**: Replaced generic options with accurate academic programs: Art, Architecture, Landscape Architecture, Interior Design, Engineering, Hobby/Personal, Other
+    - ✅ **Added Form Introduction Text**: Added comprehensive warning/guidance text at top of form using exact user-specified wording in styled yellow alert box
+    - ✅ **Enhanced Print Method Context**: Added detailed descriptions for Resin vs Filament methods with cost/capability information using exact user-specified wording
+    - ✅ **Dynamic Color Selection**: Implemented JavaScript-driven color dropdown that switches between 23 filament colors and 4 resin colors based on print method selection
+    - ✅ **Updated Class Number Format**: Changed placeholder from "ARCH-101" to "ARCH 4000" to match user requirements
+    - ✅ **Enhanced Color State Management**: Color dropdown is disabled by default and only enables after print method selection
+    
+    **Technical Implementation**:
+    - Updated `app/forms.py` with new discipline choices and comprehensive color lists
+    - Enhanced `app/templates/main/submit.html` with introduction text, print method context, and dynamic color JavaScript
+    - All changes maintain existing validation framework and client-side error handling
+    - Flask app creates successfully with all updates
+    - **Color Selection UX**: Dropdown starts disabled with helpful text, enables with appropriate colors when print method chosen, shows color count in help text
+    
+    **Testing Status**: ✅ Flask app starts successfully. Form displays with new content. Color selection properly disabled until method chosen.
+    
+    **USER ENHANCEMENT IMPLEMENTED**: ✅ Colors are not selectable until a print method is chosen - improves UX and prevents selection of incorrect colors
+    
+    **NEXT**: Phase 2 (Enhanced scaling question with printer specifications + class number format validation) or proceed to file saving implementation per Planner decision.
 
 ## Lessons
 (Record reusable information, fixes, or learnings here.)
@@ -127,4 +283,21 @@ This project aims to develop a Flask-based 3D print job management system tailor
     - Include info useful for debugging in the program output.
     - Read the file before you try to edit it.
     - If there are vulnerabilities that appear in the terminal, run npm audit before proceeding
-    - Always ask before using the -force git command 
+    - Always ask before using the -force git command
+- **Flask-WTF Dependency Critical**: Flask-WTF must be included in requirements.txt and installed for forms to work. Missing this causes import errors and prevents form functionality.
+- **PowerShell && Operator**: PowerShell doesn't support `&&` operator like bash. Use semicolon `;` or separate commands.
+- **requirements.txt Formatting**: Be careful with requirements.txt line endings. Search/replace can corrupt the file if not done carefully.
+- **Flask-WTF Forms Need App Context**: When testing Flask-WTF forms in Python CLI, wrap in `with app.app_context():` to avoid RuntimeError about working outside application context.
+- **File Size Validation**: Implemented custom `FileSizeLimit` validator that seeks to end of file to get size, then resets position. This works for both uploaded files and validation.
+- **Client-side File Validation**: File API provides `file.size` property for immediate file size checking and `file.name` for extension validation.
+- Commit message for end of day 2023-10-27 (Tasks 2 & 3.1):
+  ```
+  feat: Complete Task 2 (Shared Infrastructure) & Task 3.1 (Submission Form UI)
+
+  - Configure shared storage paths in app/config.py (APP_STORAGE_ROOT, SLICER_PROTOCOL_BASE_PATH) and update init_app to create storage directories.
+  - Add StaffSetupGuide.md to documentation for shared storage setup.
+  - Implement SubmissionForm in app/forms.py with all required fields and validators for student print job submissions.
+  - Create app/templates/main/submit.html to render the submission form using Tailwind CSS.
+  - Update /submit route in app/routes/main.py to handle GET requests for form display and initial POST request structure.
+  - Correct CSS syntax in submit.html style block.
+  ``` 

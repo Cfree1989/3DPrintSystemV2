@@ -53,6 +53,25 @@
       {% endif %}
     {% endwith %}
 
+    {# Introduction Text #}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-yellow-800">Important: Please Read Before Submitting</h3>
+                <div class="mt-2 text-sm text-yellow-700">
+                    <p class="mb-2">Before submitting your model for 3D printing, please ensure you have thoroughly reviewed our Additive Manufacturing Moodle page, read all the guides, and checked the checklist. If necessary, revisit and fix your model before submission. Your model must be scaled and simplified appropriately, often requiring a second version specifically optimized for 3D printing.</p>
+                    <p class="mb-2">We will not print models that are broken, messy, or too large. Your model must follow the rules and constraints of the machine. We will not fix or scale your model as we do not know your specific needs or project requirements. We print exactly what you send us; if the scale is wrong or you are unsatisfied with the product, it is your responsibility.</p>
+                    <p>We will gladly print another model for you at an additional cost. We are only responsible for print failures due to issues under our control.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <form method="POST" enctype="multipart/form-data" novalidate>
         {{ form.hidden_tag() }} {# CSRF token #}
 
@@ -82,14 +101,31 @@
 
         <div class="form-group">
             {{ form.class_number.label(class="block text-sm font-medium text-gray-700") }}
-            {{ form.class_number(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder="e.g., ARCH-101 or N/A") }}
+            {{ form.class_number(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder="e.g., ARCH 4000 or N/A") }}
             {% for error in form.class_number.errors %}
                 <p class="error-message">{{ error }}</p>
             {% endfor %}
         </div>
         
         <div class="form-group">
-            {{ form.print_method.label(class="block text-sm font-medium text-gray-700") }}
+            <label class="block text-sm font-medium text-gray-700 mb-2">Print Method</label>
+            <div class="mb-3 p-3 bg-gray-50 rounded-md">
+                <p class="text-sm font-medium text-gray-800 mb-2">Choose the appropriate print method for your model:</p>
+                <div class="space-y-2 text-sm text-gray-700">
+                    <div>
+                        <strong>Resin:</strong><br>
+                        Description: Super high resolution and detail. Slow.<br>
+                        Best For: Small items.<br>
+                        Cost: More expensive.
+                    </div>
+                    <div>
+                        <strong>Filament:</strong><br>
+                        Description: Good resolution, suitable for simpler models. Fast.<br>
+                        Best For: Medium items.<br>
+                        Cost: Least expensive.
+                    </div>
+                </div>
+            </div>
             {{ form.print_method(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
             {% for error in form.print_method.errors %}
                 <p class="error-message">{{ error }}</p>
@@ -98,7 +134,8 @@
 
         <div class="form-group">
             {{ form.color_preference.label(class="block text-sm font-medium text-gray-700") }}
-            {{ form.color_preference(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
+            {{ form.color_preference(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", disabled=true) }}
+            <p class="mt-1 text-xs text-gray-500" id="color-help-text">Please select a print method first.</p>
             {% for error in form.color_preference.errors %}
                 <p class="error-message">{{ error }}</p>
             {% endfor %}
@@ -130,7 +167,7 @@
         <div class="form-group">
             {{ form.file_upload.label(class="block text-sm font-medium text-gray-700") }}
             {{ form.file_upload(class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500") }}
-            <p class="mt-1 text-xs text-gray-500">Allowed file types: .stl, .obj, .3mf. Max file size: 50MB (server-side check).</p> {# Max size is illustrative, will be enforced server-side #}
+            <p class="mt-1 text-xs text-gray-500">Allowed file types: .stl, .obj, .3mf. Max file size: 50MB.</p>
             {% for error in form.file_upload.errors %}
                 <p class="error-message">{{ error }}</p>
             {% endfor %}
@@ -141,4 +178,278 @@
         </div>
     </form>
 </div>
+
+<script>
+// Client-side validation for the submission form
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const fileInput = document.querySelector('#file_upload');
+    const submitButton = document.querySelector('input[type="submit"]');
+    
+    // Dynamic color selection based on print method
+    const printMethodSelect = document.querySelector('#print_method');
+    const colorSelect = document.querySelector('#color_preference');
+    const colorHelpText = document.querySelector('#color-help-text');
+    
+    // Define color options for each print method
+    const filamentColors = [
+        ['', '-- Select Color --'],
+        ['true_red', 'True Red'],
+        ['true_orange', 'True Orange'],
+        ['light_orange', 'Light Orange'],
+        ['true_yellow', 'True Yellow'],
+        ['dark_yellow', 'Dark Yellow'],
+        ['lime_green', 'Lime Green'],
+        ['green', 'Green'],
+        ['forest_green', 'Forest Green'],
+        ['blue', 'Blue'],
+        ['electric_blue', 'Electric Blue'],
+        ['midnight_purple', 'Midnight Purple'],
+        ['light_purple', 'Light Purple'],
+        ['clear', 'Clear'],
+        ['true_white', 'True White'],
+        ['gray', 'Gray'],
+        ['true_black', 'True Black'],
+        ['brown', 'Brown'],
+        ['copper', 'Copper'],
+        ['bronze', 'Bronze'],
+        ['true_silver', 'True Silver'],
+        ['true_gold', 'True Gold'],
+        ['glow_in_dark', 'Glow in the Dark'],
+        ['color_changing', 'Color Changing']
+    ];
+    
+    const resinColors = [
+        ['', '-- Select Color --'],
+        ['black', 'Black'],
+        ['white', 'White'],
+        ['gray', 'Gray'],
+        ['clear', 'Clear']
+    ];
+    
+    // Function to update color options
+    function updateColorOptions(printMethod) {
+        if (!printMethod || printMethod === '') {
+            // No print method selected - disable color selection
+            colorSelect.disabled = true;
+            colorSelect.innerHTML = '<option value="">-- Select a print method first --</option>';
+            if (colorHelpText) {
+                colorHelpText.textContent = 'Please select a print method first.';
+            }
+        } else {
+            // Print method selected - enable and populate colors
+            colorSelect.disabled = false;
+            const colors = printMethod === 'Resin' ? resinColors : filamentColors;
+            
+            // Clear existing options
+            colorSelect.innerHTML = '';
+            
+            // Add new options
+            colors.forEach(([value, text]) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = text;
+                colorSelect.appendChild(option);
+            });
+            
+            // Update help text
+            if (colorHelpText) {
+                const colorCount = colors.length - 1; // Subtract 1 for the "-- Select Color --" option
+                colorHelpText.textContent = `${colorCount} ${printMethod.toLowerCase()} colors available.`;
+            }
+        }
+        
+        // Clear any existing errors when switching
+        clearError('color_preference');
+    }
+    
+    // Listen for changes to print method
+    if (printMethodSelect && colorSelect) {
+        printMethodSelect.addEventListener('change', function() {
+            updateColorOptions(this.value);
+        });
+        
+        // Initialize on page load - color should be disabled by default
+        updateColorOptions(printMethodSelect.value);
+    }
+    
+    // Allowed file extensions and max size
+    const allowedExtensions = ['stl', 'obj', '3mf'];
+    const maxFileSizeMB = 50;
+    const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
+    
+    // Function to show client-side error
+    function showError(fieldName, message) {
+        const field = document.querySelector(`#${fieldName}`);
+        if (field) {
+            // Remove existing error
+            const existingError = field.parentNode.querySelector('.client-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Add new error
+            const errorElement = document.createElement('p');
+            errorElement.className = 'error-message client-error';
+            errorElement.textContent = message;
+            field.parentNode.appendChild(errorElement);
+            
+            // Add error styling to field
+            field.classList.add('border-red-500');
+        }
+    }
+    
+    // Function to clear client-side error
+    function clearError(fieldName) {
+        const field = document.querySelector(`#${fieldName}`);
+        if (field) {
+            const existingError = field.parentNode.querySelector('.client-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            field.classList.remove('border-red-500');
+        }
+    }
+    
+    // Real-time file validation
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                // Check file extension
+                const fileName = file.name.toLowerCase();
+                const fileExtension = fileName.split('.').pop();
+                
+                if (!allowedExtensions.includes(fileExtension)) {
+                    showError('file_upload', `Invalid file type. Please upload one of: ${allowedExtensions.join(', ')}`);
+                    this.value = ''; // Clear the input
+                    return;
+                }
+                
+                // Check file size
+                if (file.size > maxFileSizeBytes) {
+                    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                    showError('file_upload', `File size (${fileSizeMB}MB) exceeds the maximum allowed size of ${maxFileSizeMB}MB.`);
+                    this.value = ''; // Clear the input
+                    return;
+                }
+                
+                // Clear errors if validation passes
+                clearError('file_upload');
+            }
+        });
+    }
+    
+    // Email validation
+    const emailInput = document.querySelector('#student_email');
+    if (emailInput) {
+        emailInput.addEventListener('blur', function() {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (this.value && !emailRegex.test(this.value)) {
+                showError('student_email', 'Please enter a valid email address.');
+            } else {
+                clearError('student_email');
+            }
+        });
+    }
+    
+    // Form submission validation
+    form.addEventListener('submit', function(e) {
+        let hasErrors = false;
+        
+        // Validate required text fields
+        const requiredFields = [
+            { id: 'student_name', name: 'Full Name' },
+            { id: 'student_email', name: 'Email Address' },
+            { id: 'class_number', name: 'Class Number' }
+        ];
+        
+        requiredFields.forEach(field => {
+            const input = document.querySelector(`#${field.id}`);
+            if (input && !input.value.trim()) {
+                showError(field.id, `${field.name} is required.`);
+                hasErrors = true;
+            } else {
+                clearError(field.id);
+            }
+        });
+        
+        // Validate select fields (including checking if color is enabled)
+        const selectFields = [
+            { id: 'discipline', name: 'Discipline' },
+            { id: 'print_method', name: 'Print Method' }
+        ];
+        
+        selectFields.forEach(field => {
+            const select = document.querySelector(`#${field.id}`);
+            if (select && !select.value) {
+                showError(field.id, `Please select a ${field.name}.`);
+                hasErrors = true;
+            } else {
+                clearError(field.id);
+            }
+        });
+        
+        // Special validation for color preference (only if enabled)
+        const colorSelect = document.querySelector('#color_preference');
+        if (colorSelect && !colorSelect.disabled && !colorSelect.value) {
+            showError('color_preference', 'Please select a color preference.');
+            hasErrors = true;
+        } else {
+            clearError('color_preference');
+        }
+        
+        // Validate radio button (model scaling)
+        const radioGroup = document.querySelector('input[name="model_scaled_correctly"]:checked');
+        if (!radioGroup) {
+            // Find the radio group container and show error
+            const radioContainer = document.querySelector('input[name="model_scaled_correctly"]').closest('.form-group');
+            if (radioContainer) {
+                const existingError = radioContainer.querySelector('.client-error');
+                if (!existingError) {
+                    const errorElement = document.createElement('p');
+                    errorElement.className = 'error-message client-error';
+                    errorElement.textContent = 'Please answer the question about model scaling.';
+                    radioContainer.appendChild(errorElement);
+                }
+            }
+            hasErrors = true;
+        }
+        
+        // Validate checkbox (minimum charge consent)
+        const checkbox = document.querySelector('#minimum_charge_consent');
+        if (checkbox && !checkbox.checked) {
+            showError('minimum_charge_consent', 'You must acknowledge the minimum charge and potential cost.');
+            hasErrors = true;
+        } else {
+            clearError('minimum_charge_consent');
+        }
+        
+        // Validate file upload
+        if (fileInput && !fileInput.files[0]) {
+            showError('file_upload', 'Please select a file to upload.');
+            hasErrors = true;
+        }
+        
+        // Prevent submission if there are errors
+        if (hasErrors) {
+            e.preventDefault();
+            // Scroll to first error
+            const firstError = document.querySelector('.client-error');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    });
+    
+    // Add loading state to submit button
+    form.addEventListener('submit', function() {
+        if (!document.querySelector('.client-error')) {
+            submitButton.disabled = true;
+            submitButton.value = 'Submitting...';
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    });
+});
+</script>
 {% endblock %} 
