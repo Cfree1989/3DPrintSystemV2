@@ -24,6 +24,7 @@ The project aims to replace potentially ad-hoc or manual 3D print request system
 -   **Direct file opening**: Custom protocol handler to open local files in slicer software.
 -   **Email**: Flask-Mail for notifications.
 -   **Database**: SQLite with Flask-Migrate for schema management.
+-   **Critical Dependencies**: Flask-WTF for form handling and CSRF protection (essential for SubmissionForm functionality and security). Also required: WTForms with EmailValidator, DataRequired, Length validators.
 
 ### 2.3 Simplified Architecture Principles
 This project will adhere to simplicity:
@@ -32,6 +33,15 @@ This project will adhere to simplicity:
 3.  **File Management**: Straightforward folder structure based on job status, accessible via shared network.
 4.  **Routes**: Core functionality for submission, approval, and status updates.
 5.  **Testing**: Focus on basic functionality and file handling.
+
+### 2.4 User Experience Requirements
+Based on operational needs, the following UX features are critical:
+-   **Dynamic Form Behavior**: Color selection must be disabled until print method is selected, with contextual help text
+-   **Progressive Disclosure**: Print method descriptions should be clearly visible to guide material choice
+-   **Input Validation**: Real-time client-side validation with visual feedback to prevent submission errors
+-   **Educational Content**: Comprehensive introduction text with liability disclaimers and scaling guidance
+-   **Accessibility**: Visual error states with red borders, clear error messages, and error scrolling for form submission
+-   **File Validation**: Immediate feedback on file selection with size and type checking
 -   **File handling**: Shared network storage accessible to both computers.
 -   **Direct file opening**: Custom protocol handler to open local files in slicer software.
 -   **Email**: Flask-Mail for notifications. SMTP credentials will be securely managed (e.g., via an .env file and application configuration). Advanced deliverability configurations (like SPF/DKIM records) are operational tasks external to the application and out of scope for initial development.
@@ -164,19 +174,32 @@ Upon initial successful upload, files are renamed to: `FirstAndLastName_PrintMet
     `Public Access (/submit)` → `Upload Form Page` → `POST to /submit` → `File Validation & Job Creation` → `Success Page (/submit/success?job=<id>)` OR `Upload Form Page with Errors`
 
     1.  **Upload Form (`/submit`)**:
+        *   **Form Introduction**: Comprehensive warning text at the top of the form stating:
+            "Before submitting your model for 3D printing, please ensure you have thoroughly reviewed our Additive Manufacturing Moodle page, read all the guides, and checked the checklist. If necessary, revisit and fix your model before submission. Your model must be scaled and simplified appropriately, often requiring a second version specifically optimized for 3D printing. We will not print models that are broken, messy, or too large. Your model must follow the rules and constraints of the machine. We will not fix or scale your model as we do not know your specific needs or project requirements. We print exactly what you send us; if the scale is wrong or you are unsatisfied with the product, it is your responsibility. We will gladly print another model for you at an additional cost. We are only responsible for print failures due to issues under our control."
         *   **Fields**:
-            *   Student Name (text input, required)
-            *   Student Email (email input, required, validated format)
-            *   Discipline (dropdown options, required)
-            *   Class Number (text input, required)
-            *   Print Method (dropdown: "Filament", "Resin", required)
-            *   Color Preference (dropdown, options depend on Print Method, required)
-            *   Question: "Is your model scaled correctly for the printer?" (checkbox/radio, informational)
-            *   Question: "Do you understand there's a $3 minimum charge?" (checkbox, required)
-            *   File Upload (input type `file`, required, drag-and-drop support desirable)
+            *   Student Name (text input, required, 2-100 characters)
+            *   Student Email (email input, required, validated format, max 100 characters)
+            *   Discipline (dropdown options, required): Art, Architecture, Landscape Architecture, Interior Design, Engineering, Hobby/Personal, Other
+            *   Class Number (text input, required, format example: "ARCH 4000", max 50 characters, allows "N/A")
+            *   Print Method (dropdown: "Filament", "Resin", required) with contextual descriptions:
+                - Resin: Description: Super high resolution and detail. Slow. Best For: Small items. Cost: More expensive.
+                - Filament: Description: Good resolution, suitable for simpler models. Fast. Best For: Medium items. Cost: Least expensive.
+            *   Color Preference (dynamic dropdown, disabled until Print Method selected, required):
+                - Filament Colors (23 options): True Red, True Orange, Light Orange, True Yellow, Dark Yellow, Lime Green, Green, Forest Green, Blue, Electric Blue, Midnight Purple, Light Purple, Clear, True White, Gray, True Black, Brown, Copper, Bronze, True Silver, True Gold, Glow in the Dark, Color Changing
+                - Resin Colors (4 options): Black, White, Gray, Clear
+            *   Scaling Question: "Will your model fit on our printers? Please check the dimensions (W x D x H): Filament - Prusa MK4S: 9.84" × 8.3" × 8.6" (250 × 210 × 220 mm), Prusa XL: 14.17''×14.17''×14.17'' (360 × 360 × 360 mm), Raise3D Pro 2 Plus: 12" × 12" × 23.8" (305 × 305 × 605 mm). Resin - Formlabs Form 3: 5.7 × 5.7 × 7.3H inches (145 x 145 x 175 mm). Ensure your model's dimensions are within the specified limits for the printer you plan to use. If your model is too large, consider scaling it down or splitting it into parts. For more guidance, refer to the design guides on our Moodle page or ask for assistance in person. If exporting as .STL or .OBJ you MUST scale it down in millimeters BEFORE exporting. If you do not the scale will not work correctly." (required response)
+            *   Minimum Charge Consent: "I understand there is a minimum $3.00 charge for all print jobs, and that the final cost may be higher based on material and time." (checkbox, required)
+            *   File Upload (input type `file`, required, .stl/.obj/.3mf only, 50MB max size)
             *   Submit Button
-        *   **Client-Side Validation**: For file type (.stl, .obj, .3mf), max file size (e.g., 50MB), and required fields.
-        *   **Server-Side Validation**: All client-side checks are re-validated on the server.
+        *   **Client-Side Validation**: 
+            - Real-time file validation (type and size checking on selection)
+            - Email format validation on blur
+            - Color dropdown state management (disabled until method selected)
+            - Visual error feedback with red borders and error messages
+            - Form submission validation for all field types
+            - Error scrolling to first error on submission attempt
+            - Submit button loading state during submission
+        *   **Server-Side Validation**: All client-side checks re-validated, plus custom FileSizeLimit validator and enhanced field validation with Length validators.
 
     2.  **Success Page (`/submit/success?job=<id>`)**:
         *   Displays a success message.
@@ -570,3 +593,32 @@ To protect against data loss, the following manual backup procedures are recomme
 -   **File Storage (`storage/` directory):**
     -   Staff should manually copy the entire `storage/` directory (containing all uploaded files, sliced files, and thumbnails) to a separate, secure backup location on a regular basis.
     -   If the `storage/` directory is stored on a network share that is already subject to regular, automated backups by IT, these IT backups can be relied upon for the file storage.
+
+### 5.9 Development Implementation Lessons
+Critical considerations discovered during development that must be incorporated:
+
+#### 5.9.1 Windows Development Environment
+-   **PowerShell Compatibility**: Windows PowerShell doesn't support the `&&` operator for command chaining; use semicolon (`;`) instead
+-   **Path Handling**: Use proper Windows path separators and be mindful of UNC path compatibility
+
+#### 5.9.2 Flask-WTF Integration Requirements
+-   **Essential Dependency**: Flask-WTF is critical for form handling, CSRF protection, and file upload validation
+-   **Form Architecture**: SubmissionForm class must include proper validators (DataRequired, Email, Length, custom FileSizeLimit)
+-   **Template Integration**: Forms require `{{ form.hidden_tag() }}` for CSRF tokens and proper field rendering
+
+#### 5.9.3 Template Management Best Practices
+-   **Readable Formatting**: Maintain proper indentation and structure in Jinja2 templates to avoid syntax errors
+-   **Jinja2 Syntax**: Avoid invalid characters like `#` in template expressions; use proper Jinja2 filter syntax
+-   **Filter Validation**: Ensure all Jinja2 filters exist before use (e.g., `date` filter requires additional imports)
+
+#### 5.9.4 JavaScript Implementation Patterns
+-   **File Validation**: Use File API for client-side file size and type validation before upload
+-   **Dynamic Form Behavior**: Implement proper state management for dependent form fields (print method → color selection)
+-   **Error Handling**: Provide immediate visual feedback for form validation errors with proper CSS classes
+-   **State Management**: Track form states (loading, error, disabled) for better user experience
+
+#### 5.9.5 Form UX Requirements
+-   **Progressive Enhancement**: Start with accessible HTML forms and enhance with JavaScript
+-   **Error Recovery**: Provide clear error messages and preserve form state on validation failures
+-   **Visual Feedback**: Use consistent color coding (red borders) and iconography for error states
+-   **Loading States**: Show loading indicators during form submission to prevent double-submission
