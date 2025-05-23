@@ -10,6 +10,34 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def _is_email_configured():
+    """Check if email is properly configured."""
+    mail_server = current_app.config.get('MAIL_SERVER', '')
+    mail_username = current_app.config.get('MAIL_USERNAME', '')
+    mail_default_sender = current_app.config.get('MAIL_DEFAULT_SENDER', '')
+    
+    # Check if we have real configuration (not placeholder values)
+    if (mail_server in ['smtp.example.com', ''] or 
+        mail_default_sender in ['noreply@example.com', ''] or
+        not mail_username):
+        return False
+    
+    return True
+
+def get_email_status():
+    """Get current email configuration status for admin display."""
+    if _is_email_configured():
+        return {
+            'configured': True,
+            'server': current_app.config.get('MAIL_SERVER'),
+            'sender': current_app.config.get('MAIL_DEFAULT_SENDER')
+        }
+    else:
+        return {
+            'configured': False,
+            'message': 'Email not configured. Set MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD, and MAIL_DEFAULT_SENDER in environment variables.'
+        }
+
 def send_email(to, subject, html_content, text_content=None):
     """
     Send an email using Flask-Mail.
@@ -23,6 +51,11 @@ def send_email(to, subject, html_content, text_content=None):
     Returns:
         bool: True if email sent successfully, False otherwise
     """
+    # Check if email is properly configured
+    if not _is_email_configured():
+        logger.warning(f"Email not configured - cannot send email to {to}: {subject}")
+        return False
+    
     try:
         msg = Message(
             subject=subject, 

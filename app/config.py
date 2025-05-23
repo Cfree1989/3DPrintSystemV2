@@ -7,12 +7,17 @@ project_root = os.path.dirname(basedir) # Project root (3DPrintSystemV2)
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'a_very_secret_key_that_should_be_changed'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # Email configuration
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.example.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@example.com')
+    
+    # Base URL for generating confirmation links in emails
+    BASE_URL = os.environ.get('BASE_URL', 'http://localhost:5000')
 
     # Path to the main 'storage' directory as seen by the Flask application
     # For development, it's <project_root>/storage

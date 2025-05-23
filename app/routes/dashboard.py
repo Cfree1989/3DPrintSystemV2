@@ -50,37 +50,78 @@ def logout():
 @dashboard.route('/')
 @login_required
 def index():
-    """Main dashboard showing uploaded jobs."""
+    """Main dashboard showing jobs by status."""
+    status = request.args.get('status', 'UPLOADED').upper()
+    valid_statuses = ['UPLOADED', 'PENDING', 'READYTOPRINT', 'PRINTING', 'COMPLETED', 'PAIDPICKEDUP', 'REJECTED']
+    
+    if status not in valid_statuses:
+        status = 'UPLOADED'
+    
     try:
-        # Get all jobs with UPLOADED status, ordered by most recent first
-        uploaded_jobs = Job.query.filter_by(status='UPLOADED').order_by(Job.created_at.desc()).all()
+        # Get jobs for the selected status
+        jobs = Job.query.filter_by(status=status).order_by(Job.created_at.desc()).all()
         
         # Count jobs by status for dashboard stats
-        total_uploaded = len(uploaded_jobs)
-        total_pending = Job.query.filter_by(status='PENDING').count()
-        total_ready = Job.query.filter_by(status='READYTOPRINT').count()
-        total_printing = Job.query.filter_by(status='PRINTING').count()
-        total_completed = Job.query.filter_by(status='COMPLETED').count()
-        
         stats = {
-            'uploaded': total_uploaded,
-            'pending': total_pending,
-            'ready': total_ready,
-            'printing': total_printing,
-            'completed': total_completed
+            'uploaded': Job.query.filter_by(status='UPLOADED').count(),
+            'pending': Job.query.filter_by(status='PENDING').count(),
+            'ready': Job.query.filter_by(status='READYTOPRINT').count(),
+            'printing': Job.query.filter_by(status='PRINTING').count(),
+            'completed': Job.query.filter_by(status='COMPLETED').count(),
+            'paidpickedup': Job.query.filter_by(status='PAIDPICKEDUP').count(),
+            'rejected': Job.query.filter_by(status='REJECTED').count()
         }
         
         return render_template('dashboard/index.html', 
                              title='Staff Dashboard',
-                             jobs=uploaded_jobs,
-                             stats=stats)
+                             jobs=jobs,
+                             stats=stats,
+                             current_status=status)
     except Exception as e:
         current_app.logger.error(f"Error loading dashboard: {str(e)}")
         flash('Error loading dashboard data.', 'error')
         return render_template('dashboard/index.html', 
                              title='Staff Dashboard',
                              jobs=[],
-                             stats={})
+                             stats={},
+                             current_status=status)
+
+@dashboard.route('/api/jobs/<status>')
+@login_required
+def api_jobs_by_status(status):
+    """API endpoint to get jobs by status (for AJAX tab switching)."""
+    status = status.upper()
+    valid_statuses = ['UPLOADED', 'PENDING', 'READYTOPRINT', 'PRINTING', 'COMPLETED', 'PAIDPICKEDUP', 'REJECTED']
+    
+    if status not in valid_statuses:
+        return jsonify({'error': 'Invalid status'}), 400
+    
+    try:
+        jobs = Job.query.filter_by(status=status).order_by(Job.created_at.desc()).all()
+        
+        jobs_data = []
+        for job in jobs:
+            jobs_data.append({
+                'id': job.id,
+                'display_name': job.display_name,
+                'student_name': job.student_name,
+                'student_email': job.student_email,
+                'printer': job.printer,
+                'color': job.color,
+                'material': job.material or 'N/A',
+                'status': job.status,
+                'created_at': job.created_at.strftime('%m/%d/%Y at %I:%M %p'),
+                'cost_usd': str(job.cost_usd) if job.cost_usd else 'N/A'
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'jobs': jobs_data,
+            'count': len(jobs_data)
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error loading jobs for status {status}: {str(e)}")
+        return jsonify({'error': 'Error loading jobs'}), 500
 
 @dashboard.route('/job/<job_id>')
 @login_required
