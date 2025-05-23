@@ -123,16 +123,19 @@ class Job(db.Model):
     id = db.Column(db.String, primary_key=True)   # uuid4 hex
     student_name = db.Column(db.String(100))
     student_email = db.Column(db.String(100))
+    discipline = db.Column(db.String(50))         # Student's discipline/major
+    class_number = db.Column(db.String(50))       # Class number or "N/A"
     original_filename = db.Column(db.String(256)) # Original name from student upload
     display_name = db.Column(db.String(256))      # Standardized name (e.g., FirstLast_Method_Color_ID.ext) or slicer output name
     file_path = db.Column(db.String(512))         # Full network path to the authoritative file for the current status
     status = db.Column(db.String(50))             # Enum: UPLOADED, PENDING, REJECTED, READYTOPRINT, PRINTING, COMPLETED, PAIDPICKEDUP
-    printer = db.Column(db.String(64))            # Selected printer type/method
+    printer = db.Column(db.String(64))            # Selected printer type/method (from student selection)
     color = db.Column(db.String(32))
     material = db.Column(db.String(32))           # Entered by staff
     weight_g = db.Column(db.Float)                # Entered by staff
     time_min = db.Column(db.Integer)              # Entered by staff
     cost_usd = db.Column(db.Numeric(6, 2))        # Calculated
+    acknowledged_minimum_charge = db.Column(db.Boolean, default=False) # Student's acknowledgment of $3 minimum
     student_confirmed = db.Column(db.Boolean, default=False)
     student_confirmed_at = db.Column(db.DateTime, nullable=True)
     confirm_token = db.Column(db.String(128), nullable=True, unique=True) # For student confirmation link
@@ -180,15 +183,16 @@ Upon initial successful upload, files are renamed to: `FirstAndLastName_PrintMet
             *   Student Name (text input, required, 2-100 characters)
             *   Student Email (email input, required, validated format, max 100 characters)
             *   Discipline (dropdown options, required): Art, Architecture, Landscape Architecture, Interior Design, Engineering, Hobby/Personal, Other
-            *   Class Number (text input, required, format example: "ARCH 4000", max 50 characters, allows "N/A")
+            *   Class Number (text input, required, format example: "ARCH 4000 or N/A", max 50 characters, allows "N/A")
             *   Print Method (dropdown: "Filament", "Resin", required) with contextual descriptions:
                 - Resin: Description: Super high resolution and detail. Slow. Best For: Small items. Cost: More expensive.
                 - Filament: Description: Good resolution, suitable for simpler models. Fast. Best For: Medium items. Cost: Least expensive.
             *   Color Preference (dynamic dropdown, disabled until Print Method selected, required):
                 - Filament Colors (23 options): True Red, True Orange, Light Orange, True Yellow, Dark Yellow, Lime Green, Green, Forest Green, Blue, Electric Blue, Midnight Purple, Light Purple, Clear, True White, Gray, True Black, Brown, Copper, Bronze, True Silver, True Gold, Glow in the Dark, Color Changing
                 - Resin Colors (4 options): Black, White, Gray, Clear
-            *   Scaling Question: "Will your model fit on our printers? Please check the dimensions (W x D x H): Filament - Prusa MK4S: 9.84" × 8.3" × 8.6" (250 × 210 × 220 mm), Prusa XL: 14.17''×14.17''×14.17'' (360 × 360 × 360 mm), Raise3D Pro 2 Plus: 12" × 12" × 23.8" (305 × 305 × 605 mm). Resin - Formlabs Form 3: 5.7 × 5.7 × 7.3H inches (145 x 145 x 175 mm). Ensure your model's dimensions are within the specified limits for the printer you plan to use. If your model is too large, consider scaling it down or splitting it into parts. For more guidance, refer to the design guides on our Moodle page or ask for assistance in person. If exporting as .STL or .OBJ you MUST scale it down in millimeters BEFORE exporting. If you do not the scale will not work correctly." (required response)
-            *   Minimum Charge Consent: "I understand there is a minimum $3.00 charge for all print jobs, and that the final cost may be higher based on material and time." (checkbox, required)
+            *   Printer Dimensions (informational section only, no user input): Displays complete scaling guidance with text: "Will your model fit on our printers? Please check the dimensions (W x D x H): Filament - Prusa MK4S: 9.84" × 8.3" × 8.6" (250 × 210 × 220 mm), Prusa XL: 14.17" × 14.17" × 14.17" (360 × 360 × 360 mm), Raise3D Pro 2 Plus: 12" × 12" × 23.8" (305 × 305 × 605 mm). Resin - Formlabs Form 3: 5.7 × 5.7 × 7.3 inches (145 x 145 x 175 mm). Ensure your model's dimensions are within the specified limits for the printer you plan to use. If your model is too large, consider scaling it down or splitting it into parts. For more guidance, refer to the design guides on our Moodle page or ask for assistance in person. If exporting as .STL or .OBJ you MUST scale it down in millimeters BEFORE exporting. If you do not the scale will not work correctly."
+            *   Printer Selection (dropdown, required): Students select which printer they think their model fits on. Options: Prusa MK4S, Prusa XL, Raise3D Pro 2 Plus, Formlabs Form 3 (printer names only, dimensions shown in information section above)
+            *   Minimum Charge Consent (Yes/No dropdown, required): "I understand there is a minimum $3.00 charge for all print jobs, and that the final cost may be higher based on material and time." Students must select "Yes" or "No"
             *   File Upload (input type `file`, required, .stl/.obj/.3mf only, 50MB max size)
             *   Submit Button
         *   **Client-Side Validation**: 

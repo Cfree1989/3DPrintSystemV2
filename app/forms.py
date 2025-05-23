@@ -96,16 +96,26 @@ class SubmissionForm(FlaskForm):
     # Default to filament colors initially - will be updated dynamically
     color_preference = SelectField('Color Preference', choices=filament_color_choices, validators=[SelectRequired(message="Please select a color preference.")])
     
-    model_scaled_correctly = RadioField(
-        'Is your model scaled correctly for the printer?',
-        choices=[('yes', 'Yes'), ('no', 'No'), ('unsure', 'Unsure')],
-        default='unsure',
-        validators=[DataRequired(message="Please answer the question about model scaling.")]
-    )
+    # New printer selection field
+    printer_choices = [
+        ('', '-- Select Printer --'),
+        ('prusa_mk4s', 'Prusa MK4S'),
+        ('prusa_xl', 'Prusa XL'),
+        ('raise3d_pro2plus', 'Raise3D Pro 2 Plus'),
+        ('formlabs_form3', 'Formlabs Form 3')
+    ]
+    printer_selection = SelectField('Which printer do you think your model fits on?', choices=printer_choices, validators=[SelectRequired(message="Please select a printer.")])
     
-    minimum_charge_consent = BooleanField(
+    # Change minimum charge from checkbox to dropdown
+    minimum_charge_choices = [
+        ('', '-- Select --'),
+        ('yes', 'Yes'),
+        ('no', 'No')
+    ]
+    minimum_charge_consent = SelectField(
         'I understand there is a minimum $3.00 charge for all print jobs, and that the final cost may be higher based on material and time.',
-        validators=[InputRequired(message="You must acknowledge the minimum charge and potential cost.")]
+        choices=minimum_charge_choices,
+        validators=[SelectRequired(message="You must acknowledge the minimum charge and potential cost.")]
     )
     
     allowed_extensions = ['stl', 'obj', '3mf']

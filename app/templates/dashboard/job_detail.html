@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container" style="max-width: 800px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>Job Details</h2>
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+    
+    <!-- Job Status Badge -->
+    <div style="margin-bottom: 2rem;">
+        <span class="status-badge status-{{ job.status.lower() }}">{{ job.status }}</span>
+    </div>
+    
+    <!-- Job Information Grid -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+        <!-- Student Information -->
+        <div>
+            <h3 style="margin-bottom: 1rem; color: #111827;">Student Information</h3>
+            <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px;">
+                <p><strong>Name:</strong> {{ job.student_name }}</p>
+                <p><strong>Email:</strong> {{ job.student_email }}</p>
+                <p><strong>Discipline:</strong> {{ job.discipline or 'Not specified' }}</p>
+                <p><strong>Class:</strong> {{ job.class_number or 'Not specified' }}</p>
+            </div>
+        </div>
+        
+        <!-- Job Information -->
+        <div>
+            <h3 style="margin-bottom: 1rem; color: #111827;">Print Details</h3>
+            <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px;">
+                <p><strong>Print Method:</strong> {{ job.printer }}</p>
+                <p><strong>Color:</strong> {{ job.color }}</p>
+                <p><strong>Material:</strong> {{ job.material or 'Not specified' }}</p>
+                <p><strong>Weight:</strong> {{ job.weight_g }}g</p>
+                <p><strong>Time:</strong> {{ job.time_min }} minutes</p>
+                <p><strong>Cost:</strong> ${{ "%.2f"|format(job.cost_usd or 0) }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- File Information -->
+    <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem; color: #111827;">File Information</h3>
+        <p><strong>Original File:</strong> {{ job.original_filename }}</p>
+        <p><strong>Display Name:</strong> {{ job.display_name }}</p>
+        <p><strong>File Path:</strong> {{ job.file_path }}</p>
+    </div>
+    
+    <!-- Timestamps -->
+    <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem; color: #111827;">Timeline</h3>
+        <p><strong>Submitted:</strong> {{ job.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+        <p><strong>Last Updated:</strong> {{ job.updated_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+        {% if job.student_confirmed_at %}
+        <p><strong>Student Confirmed:</strong> {{ job.student_confirmed_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+        {% endif %}
+    </div>
+    
+    <!-- Actions -->
+    {% if job.status == 'UPLOADED' %}
+    <div style="background: #fff; border: 2px solid #e5e7eb; padding: 1.5rem; border-radius: 8px;">
+        <h3 style="margin-bottom: 1rem; color: #111827;">Staff Actions</h3>
+        <p style="margin-bottom: 1rem; color: #6b7280;">This job is awaiting staff review and approval.</p>
+        <div style="display: flex; gap: 1rem;">
+            <button class="btn btn-success">Approve</button>
+            <button class="btn btn-danger">Reject</button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

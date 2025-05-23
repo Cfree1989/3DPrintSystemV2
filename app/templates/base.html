@@ -4,17 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}3D Print System{% endblock %}</title>
-    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/build.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/simple.css') }}">
     <!-- <script src="{{ url_for('static', filename='js/alpine.min.js') }}" defer></script> -->
     {% block head_extra %}{% endblock %}
 </head>
-<body>
+<body{% if request.endpoint == 'dashboard.login' %} class="login-page"{% endif %}>
     <header>
         <!-- Basic navigation or header content can go here -->
         <h1><a href="{{ url_for('main.index') }}">3D Print Service</a></h1>
     </header>
 
     <main>
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'error' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         {% block content %}
         <p>Welcome to the 3D Print System!</p>
         {% endblock %}

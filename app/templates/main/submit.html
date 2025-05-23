@@ -34,421 +34,197 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-8">
-    <h2 class="text-2xl font-bold mb-6">Submit New 3D Print Job</h2>
-
-    {# Flash messages #}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="p-4 mb-4 text-sm rounded-lg \
-            {% if category == 'success' %} bg-green-100 text-green-700 {% endif %}\
-            {% if category == 'error' %} bg-red-100 text-red-700 {% endif %}\
-            {% if category == 'info' %} bg-blue-100 text-blue-700 {% endif %}\
-            {% if category == 'warning' %} bg-yellow-100 text-yellow-700 {% endif %}" \
-            role="alert">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    {# Introduction Text #}
-    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-            </div>
-            <div class="ml-3">
-                <h3 class="text-sm font-medium text-yellow-800">Important: Please Read Before Submitting</h3>
-                <div class="mt-2 text-sm text-yellow-700">
-                    <p class="mb-2">Before submitting your model for 3D printing, please ensure you have thoroughly reviewed our Additive Manufacturing Moodle page, read all the guides, and checked the checklist. If necessary, revisit and fix your model before submission. Your model must be scaled and simplified appropriately, often requiring a second version specifically optimized for 3D printing.</p>
-                    <p class="mb-2">We will not print models that are broken, messy, or too large. Your model must follow the rules and constraints of the machine. We will not fix or scale your model as we do not know your specific needs or project requirements. We print exactly what you send us; if the scale is wrong or you are unsatisfied with the product, it is your responsibility.</p>
-                    <p>We will gladly print another model for you at an additional cost. We are only responsible for print failures due to issues under our control.</p>
-                </div>
-            </div>
-        </div>
+<div class="form-container">
+    <h2>Submit 3D Print Job</h2>
+    
+    <!-- Warning Text -->
+    <div class="alert alert-warning">
+        <strong>Important:</strong> Before submitting your model for 3D printing, please ensure you have thoroughly reviewed our Additive Manufacturing Moodle page, read all the guides, and checked the checklist. If necessary, revisit and fix your model before submission. Your model must be scaled and simplified appropriately, often requiring a second version specifically optimized for 3D printing. We will not print models that are broken, messy, or too large. Your model must follow the rules and constraints of the machine. We will not fix or scale your model as we do not know your specific needs or project requirements. We print exactly what you send us; if the scale is wrong or you are unsatisfied with the product, it is your responsibility. We will gladly print another model for you at an additional cost. We are only responsible for print failures due to issues under our control.
     </div>
 
-    <form method="POST" enctype="multipart/form-data" novalidate>
-        {{ form.hidden_tag() }} {# CSRF token #}
+    <form method="POST" enctype="multipart/form-data" id="submitForm">
+        {{ form.hidden_tag() }}
 
         <div class="form-group">
-            {{ form.student_name.label(class="block text-sm font-medium text-gray-700") }}
-            {{ form.student_name(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder="e.g., Jane Doe") }}
-            {% for error in form.student_name.errors %}
-                <p class="error-message">{{ error }}</p>
-            {% endfor %}
+            {{ form.student_name.label(class="form-label") }}
+            {{ form.student_name(class="form-control") }}
+            {% if form.student_name.errors %}
+                <div class="alert alert-error">{{ form.student_name.errors[0] }}</div>
+            {% endif %}
         </div>
 
         <div class="form-group">
-            {{ form.student_email.label(class="block text-sm font-medium text-gray-700") }}
-            {{ form.student_email(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder="e.g., jane.doe@example.edu") }}
-            {% for error in form.student_email.errors %}
-                <p class="error-message">{{ error }}</p>
-            {% endfor %}
+            {{ form.student_email.label(class="form-label") }}
+            {{ form.student_email(class="form-control") }}
+            {% if form.student_email.errors %}
+                <div class="alert alert-error">{{ form.student_email.errors[0] }}</div>
+            {% endif %}
         </div>
 
         <div class="form-group">
-            {{ form.discipline.label(class="block text-sm font-medium text-gray-700") }}
-            {{ form.discipline(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
-            {% for error in form.discipline.errors %}
-                <p class="error-message">{{ error }}</p>
-            {% endfor %}
+            {{ form.discipline.label(class="form-label") }}
+            {{ form.discipline(class="form-control") }}
+            {% if form.discipline.errors %}
+                <div class="alert alert-error">{{ form.discipline.errors[0] }}</div>
+            {% endif %}
         </div>
 
         <div class="form-group">
-            {{ form.class_number.label(class="block text-sm font-medium text-gray-700") }}
-            {{ form.class_number(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder="e.g., ARCH 4000 or N/A") }}
-            {% for error in form.class_number.errors %}
-                <p class="error-message">{{ error }}</p>
-            {% endfor %}
+            {{ form.class_number.label(class="form-label") }}
+            {{ form.class_number(class="form-control", placeholder="ARCH 4000") }}
+            {% if form.class_number.errors %}
+                <div class="alert alert-error">{{ form.class_number.errors[0] }}</div>
+            {% endif %}
         </div>
-        
+
         <div class="form-group">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Print Method</label>
-            <div class="mb-3 p-3 bg-gray-50 rounded-md">
-                <p class="text-sm font-medium text-gray-800 mb-2">Choose the appropriate print method for your model:</p>
-                <div class="space-y-2 text-sm text-gray-700">
-                    <div>
-                        <strong>Resin:</strong><br>
-                        Description: Super high resolution and detail. Slow.<br>
-                        Best For: Small items.<br>
-                        Cost: More expensive.
-                    </div>
-                    <div>
-                        <strong>Filament:</strong><br>
-                        Description: Good resolution, suitable for simpler models. Fast.<br>
-                        Best For: Medium items.<br>
-                        Cost: Least expensive.
-                    </div>
-                </div>
+            {{ form.print_method.label(class="form-label") }}
+            {{ form.print_method(class="form-control", id="printMethod") }}
+            {% if form.print_method.errors %}
+                <div class="alert alert-error">{{ form.print_method.errors[0] }}</div>
+            {% endif %}
+            <div id="methodHelp" style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;"></div>
+        </div>
+
+        <div class="form-group">
+            {{ form.color_preference.label(class="form-label") }}
+            {{ form.color_preference(class="form-control", id="colorSelect", disabled=true) }}
+            {% if form.color_preference.errors %}
+                <div class="alert alert-error">{{ form.color_preference.errors[0] }}</div>
+            {% endif %}
+            <div id="colorHelp" style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">Please select a print method first</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Printer Dimensions</label>
+            <div style="margin: 0.5rem 0; padding: 1rem; background: #f3f4f6; border-radius: 6px; font-size: 0.9rem;">
+                <strong>Will your model fit on our printers? Please check the dimensions (W x D x H):</strong><br>
+                <strong>Filament:</strong><br>
+                • Prusa MK4S: 9.84" × 8.3" × 8.6" (250 × 210 × 220 mm)<br>
+                • Prusa XL: 14.17" × 14.17" × 14.17" (360 × 360 × 360 mm)<br>
+                • Raise3D Pro 2 Plus: 12" × 12" × 23.8" (305 × 305 × 605 mm)<br>
+                <strong>Resin:</strong><br>
+                • Formlabs Form 3: 5.7 × 5.7 × 7.3 inches (145 x 145 x 175 mm)<br><br>
+                Ensure your model's dimensions are within the specified limits for the printer you plan to use. If your model is too large, consider scaling it down or splitting it into parts. For more guidance, refer to the design guides on our Moodle page or ask for assistance in person. If exporting as .STL or .OBJ you MUST scale it down in millimeters BEFORE exporting. If you do not the scale will not work correctly.
             </div>
-            {{ form.print_method(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm") }}
-            {% for error in form.print_method.errors %}
-                <p class="error-message">{{ error }}</p>
-            {% endfor %}
         </div>
 
         <div class="form-group">
-            {{ form.color_preference.label(class="block text-sm font-medium text-gray-700") }}
-            {{ form.color_preference(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", disabled=true) }}
-            <p class="mt-1 text-xs text-gray-500" id="color-help-text">Please select a print method first.</p>
-            {% for error in form.color_preference.errors %}
-                <p class="error-message">{{ error }}</p>
-            {% endfor %}
+            {{ form.printer_selection.label(class="form-label") }}
+            {{ form.printer_selection(class="form-control") }}
+            {% if form.printer_selection.errors %}
+                <div class="alert alert-error">{{ form.printer_selection.errors[0] }}</div>
+            {% endif %}
         </div>
 
         <div class="form-group">
-            <p class="block text-sm font-medium text-gray-700 mb-1">{{ form.model_scaled_correctly.label.text }}</p>
-            {% for subfield in form.model_scaled_correctly %}
-                <label class="inline-flex items-center mr-4">
-                    {{ subfield(class="form-radio h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500") }}
-                    <span class="ml-2 text-sm text-gray-700">{{ subfield.label.text }}</span>
-                </label>
-            {% endfor %}
-            {% for error in form.model_scaled_correctly.errors %}
-                <p class="error-message">{{ error }}</p>
-            {% endfor %}
+            {{ form.minimum_charge_consent.label(class="form-label") }}
+            {{ form.minimum_charge_consent(class="form-control") }}
+            {% if form.minimum_charge_consent.errors %}
+                <div class="alert alert-error">{{ form.minimum_charge_consent.errors[0] }}</div>
+            {% endif %}
         </div>
 
         <div class="form-group">
-            <label class="flex items-center">
-                {{ form.minimum_charge_consent(class="form-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500") }}
-                <span class="ml-2 text-sm text-gray-700">{{ form.minimum_charge_consent.label.text }}</span>
-            </label>
-            {% for error in form.minimum_charge_consent.errors %}
-                <p class="error-message">{{ error }}</p>
-            {% endfor %}
-        </div>
-        
-        <div class="form-group">
-            {{ form.file_upload.label(class="block text-sm font-medium text-gray-700") }}
-            {{ form.file_upload(class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500") }}
-            <p class="mt-1 text-xs text-gray-500">Allowed file types: .stl, .obj, .3mf. Max file size: 50MB.</p>
-            {% for error in form.file_upload.errors %}
-                <p class="error-message">{{ error }}</p>
-            {% endfor %}
+            {{ form.file_upload.label(class="form-label") }}
+            {{ form.file_upload(class="form-control", id="fileInput") }}
+            {% if form.file_upload.errors %}
+                <div class="alert alert-error">{{ form.file_upload.errors[0] }}</div>
+            {% endif %}
+            <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
+                Accepted formats: .stl, .obj, .3mf (max 50MB)
+            </div>
         </div>
 
-        <div class="form-group mt-6">
-            {{ form.submit(class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500") }}
-        </div>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+            Submit Print Job
+        </button>
     </form>
 </div>
 
 <script>
-// Client-side validation for the submission form
+// Simple JavaScript for dynamic color selection and form validation
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
-    const fileInput = document.querySelector('#file_upload');
-    const submitButton = document.querySelector('input[type="submit"]');
+    const printMethod = document.getElementById('printMethod');
+    const colorSelect = document.getElementById('colorSelect');
+    const colorHelp = document.getElementById('colorHelp');
+    const methodHelp = document.getElementById('methodHelp');
+    const fileInput = document.getElementById('fileInput');
+    const submitBtn = document.getElementById('submitBtn');
     
-    // Dynamic color selection based on print method
-    const printMethodSelect = document.querySelector('#print_method');
-    const colorSelect = document.querySelector('#color_preference');
-    const colorHelpText = document.querySelector('#color-help-text');
-    
-    // Define color options for each print method
+    // Color options
     const filamentColors = [
-        ['', '-- Select Color --'],
-        ['true_red', 'True Red'],
-        ['true_orange', 'True Orange'],
-        ['light_orange', 'Light Orange'],
-        ['true_yellow', 'True Yellow'],
-        ['dark_yellow', 'Dark Yellow'],
-        ['lime_green', 'Lime Green'],
-        ['green', 'Green'],
-        ['forest_green', 'Forest Green'],
-        ['blue', 'Blue'],
-        ['electric_blue', 'Electric Blue'],
-        ['midnight_purple', 'Midnight Purple'],
-        ['light_purple', 'Light Purple'],
-        ['clear', 'Clear'],
-        ['true_white', 'True White'],
-        ['gray', 'Gray'],
-        ['true_black', 'True Black'],
-        ['brown', 'Brown'],
-        ['copper', 'Copper'],
-        ['bronze', 'Bronze'],
-        ['true_silver', 'True Silver'],
-        ['true_gold', 'True Gold'],
-        ['glow_in_dark', 'Glow in the Dark'],
-        ['color_changing', 'Color Changing']
+        ['', 'Select a color...'],
+        ['True Red', 'True Red'], ['True Orange', 'True Orange'], ['Light Orange', 'Light Orange'],
+        ['True Yellow', 'True Yellow'], ['Dark Yellow', 'Dark Yellow'], ['Lime Green', 'Lime Green'],
+        ['Green', 'Green'], ['Forest Green', 'Forest Green'], ['Blue', 'Blue'], ['Electric Blue', 'Electric Blue'],
+        ['Midnight Purple', 'Midnight Purple'], ['Light Purple', 'Light Purple'], ['Clear', 'Clear'],
+        ['True White', 'True White'], ['Gray', 'Gray'], ['True Black', 'True Black'], ['Brown', 'Brown'],
+        ['Copper', 'Copper'], ['Bronze', 'Bronze'], ['True Silver', 'True Silver'], ['True Gold', 'True Gold'],
+        ['Glow in the Dark', 'Glow in the Dark'], ['Color Changing', 'Color Changing']
     ];
     
     const resinColors = [
-        ['', '-- Select Color --'],
-        ['black', 'Black'],
-        ['white', 'White'],
-        ['gray', 'Gray'],
-        ['clear', 'Clear']
+        ['', 'Select a color...'],
+        ['Black', 'Black'], ['White', 'White'], ['Gray', 'Gray'], ['Clear', 'Clear']
     ];
     
-    // Function to update color options
-    function updateColorOptions(printMethod) {
-        if (!printMethod || printMethod === '') {
-            // No print method selected - disable color selection
-            colorSelect.disabled = true;
-            colorSelect.innerHTML = '<option value="">-- Select a print method first --</option>';
-            if (colorHelpText) {
-                colorHelpText.textContent = 'Please select a print method first.';
-            }
-        } else {
-            // Print method selected - enable and populate colors
+    // Method descriptions
+    const methodDescriptions = {
+        'Filament': 'Description: Good resolution, suitable for simpler models. Fast. Best For: Medium items. Cost: Least expensive.',
+        'Resin': 'Description: Super high resolution and detail. Slow. Best For: Small items. Cost: More expensive.'
+    };
+    
+    printMethod.addEventListener('change', function() {
+        const method = this.value;
+        colorSelect.innerHTML = '';
+        
+        if (method) {
             colorSelect.disabled = false;
-            const colors = printMethod === 'Resin' ? resinColors : filamentColors;
+            colorHelp.textContent = `Select a ${method.toLowerCase()} color`;
+            methodHelp.textContent = methodDescriptions[method] || '';
             
-            // Clear existing options
-            colorSelect.innerHTML = '';
-            
-            // Add new options
-            colors.forEach(([value, text]) => {
+            const colors = method === 'Filament' ? filamentColors : resinColors;
+            colors.forEach(function(color) {
                 const option = document.createElement('option');
-                option.value = value;
-                option.textContent = text;
+                option.value = color[0];
+                option.textContent = color[1];
                 colorSelect.appendChild(option);
             });
-            
-            // Update help text
-            if (colorHelpText) {
-                const colorCount = colors.length - 1; // Subtract 1 for the "-- Select Color --" option
-                colorHelpText.textContent = `${colorCount} ${printMethod.toLowerCase()} colors available.`;
-            }
-        }
-        
-        // Clear any existing errors when switching
-        clearError('color_preference');
-    }
-    
-    // Listen for changes to print method
-    if (printMethodSelect && colorSelect) {
-        printMethodSelect.addEventListener('change', function() {
-            updateColorOptions(this.value);
-        });
-        
-        // Initialize on page load - color should be disabled by default
-        updateColorOptions(printMethodSelect.value);
-    }
-    
-    // Allowed file extensions and max size
-    const allowedExtensions = ['stl', 'obj', '3mf'];
-    const maxFileSizeMB = 50;
-    const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
-    
-    // Function to show client-side error
-    function showError(fieldName, message) {
-        const field = document.querySelector(`#${fieldName}`);
-        if (field) {
-            // Remove existing error
-            const existingError = field.parentNode.querySelector('.client-error');
-            if (existingError) {
-                existingError.remove();
-            }
-            
-            // Add new error
-            const errorElement = document.createElement('p');
-            errorElement.className = 'error-message client-error';
-            errorElement.textContent = message;
-            field.parentNode.appendChild(errorElement);
-            
-            // Add error styling to field
-            field.classList.add('border-red-500');
-        }
-    }
-    
-    // Function to clear client-side error
-    function clearError(fieldName) {
-        const field = document.querySelector(`#${fieldName}`);
-        if (field) {
-            const existingError = field.parentNode.querySelector('.client-error');
-            if (existingError) {
-                existingError.remove();
-            }
-            field.classList.remove('border-red-500');
-        }
-    }
-    
-    // Real-time file validation
-    if (fileInput) {
-        fileInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                // Check file extension
-                const fileName = file.name.toLowerCase();
-                const fileExtension = fileName.split('.').pop();
-                
-                if (!allowedExtensions.includes(fileExtension)) {
-                    showError('file_upload', `Invalid file type. Please upload one of: ${allowedExtensions.join(', ')}`);
-                    this.value = ''; // Clear the input
-                    return;
-                }
-                
-                // Check file size
-                if (file.size > maxFileSizeBytes) {
-                    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-                    showError('file_upload', `File size (${fileSizeMB}MB) exceeds the maximum allowed size of ${maxFileSizeMB}MB.`);
-                    this.value = ''; // Clear the input
-                    return;
-                }
-                
-                // Clear errors if validation passes
-                clearError('file_upload');
-            }
-        });
-    }
-    
-    // Email validation
-    const emailInput = document.querySelector('#student_email');
-    if (emailInput) {
-        emailInput.addEventListener('blur', function() {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (this.value && !emailRegex.test(this.value)) {
-                showError('student_email', 'Please enter a valid email address.');
-            } else {
-                clearError('student_email');
-            }
-        });
-    }
-    
-    // Form submission validation
-    form.addEventListener('submit', function(e) {
-        let hasErrors = false;
-        
-        // Validate required text fields
-        const requiredFields = [
-            { id: 'student_name', name: 'Full Name' },
-            { id: 'student_email', name: 'Email Address' },
-            { id: 'class_number', name: 'Class Number' }
-        ];
-        
-        requiredFields.forEach(field => {
-            const input = document.querySelector(`#${field.id}`);
-            if (input && !input.value.trim()) {
-                showError(field.id, `${field.name} is required.`);
-                hasErrors = true;
-            } else {
-                clearError(field.id);
-            }
-        });
-        
-        // Validate select fields (including checking if color is enabled)
-        const selectFields = [
-            { id: 'discipline', name: 'Discipline' },
-            { id: 'print_method', name: 'Print Method' }
-        ];
-        
-        selectFields.forEach(field => {
-            const select = document.querySelector(`#${field.id}`);
-            if (select && !select.value) {
-                showError(field.id, `Please select a ${field.name}.`);
-                hasErrors = true;
-            } else {
-                clearError(field.id);
-            }
-        });
-        
-        // Special validation for color preference (only if enabled)
-        const colorSelect = document.querySelector('#color_preference');
-        if (colorSelect && !colorSelect.disabled && !colorSelect.value) {
-            showError('color_preference', 'Please select a color preference.');
-            hasErrors = true;
         } else {
-            clearError('color_preference');
+            colorSelect.disabled = true;
+            colorHelp.textContent = 'Please select a print method first';
+            methodHelp.textContent = '';
         }
-        
-        // Validate radio button (model scaling)
-        const radioGroup = document.querySelector('input[name="model_scaled_correctly"]:checked');
-        if (!radioGroup) {
-            // Find the radio group container and show error
-            const radioContainer = document.querySelector('input[name="model_scaled_correctly"]').closest('.form-group');
-            if (radioContainer) {
-                const existingError = radioContainer.querySelector('.client-error');
-                if (!existingError) {
-                    const errorElement = document.createElement('p');
-                    errorElement.className = 'error-message client-error';
-                    errorElement.textContent = 'Please answer the question about model scaling.';
-                    radioContainer.appendChild(errorElement);
-                }
+    });
+    
+    // File validation
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            const allowedTypes = ['.stl', '.obj', '.3mf'];
+            const fileName = file.name.toLowerCase();
+            const fileExt = fileName.substring(fileName.lastIndexOf('.'));
+            
+            if (file.size > maxSize) {
+                alert('File size must be less than 50MB');
+                this.value = '';
+                return;
             }
-            hasErrors = true;
-        }
-        
-        // Validate checkbox (minimum charge consent)
-        const checkbox = document.querySelector('#minimum_charge_consent');
-        if (checkbox && !checkbox.checked) {
-            showError('minimum_charge_consent', 'You must acknowledge the minimum charge and potential cost.');
-            hasErrors = true;
-        } else {
-            clearError('minimum_charge_consent');
-        }
-        
-        // Validate file upload
-        if (fileInput && !fileInput.files[0]) {
-            showError('file_upload', 'Please select a file to upload.');
-            hasErrors = true;
-        }
-        
-        // Prevent submission if there are errors
-        if (hasErrors) {
-            e.preventDefault();
-            // Scroll to first error
-            const firstError = document.querySelector('.client-error');
-            if (firstError) {
-                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            if (!allowedTypes.includes(fileExt)) {
+                alert('Please select a valid 3D model file (.stl, .obj, or .3mf)');
+                this.value = '';
+                return;
             }
         }
     });
     
-    // Add loading state to submit button
-    form.addEventListener('submit', function() {
-        if (!document.querySelector('.client-error')) {
-            submitButton.disabled = true;
-            submitButton.value = 'Submitting...';
-            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
-        }
+    // Form submission loading state
+    document.getElementById('submitForm').addEventListener('submit', function() {
+        submitBtn.textContent = 'Submitting...';
+        submitBtn.disabled = true;
     });
 });
 </script>

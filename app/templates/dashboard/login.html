@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <h2>Staff Login</h2>
+        <p>Enter the staff password to access the dashboard</p>
+        
+        <form method="POST">
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" 
+                       id="password" 
+                       name="password" 
+                       class="form-control" 
+                       placeholder="Enter staff password" 
+                       required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Login
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %} 
