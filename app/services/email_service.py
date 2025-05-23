@@ -6,6 +6,7 @@
 from flask_mail import Message
 from app.extensions import mail
 from flask import current_app, render_template_string
+from app.utils.helpers import round_time_conservative
 import logging
 
 logger = logging.getLogger(__name__)
@@ -103,7 +104,7 @@ def send_approval_email(job):
         <li><strong>Color:</strong> {job.color}</li>
         <li><strong>Material:</strong> {job.material}</li>
         <li><strong>Estimated Weight:</strong> {job.weight_g}g</li>
-        <li><strong>Estimated Print Time:</strong> {job.time_min} minutes</li>
+                    <li><strong>Estimated Print Time:</strong> {round_time_conservative(job.time_hours or 0)} hours</li>
         <li><strong>Estimated Cost:</strong> ${job.cost_usd:.2f}</li>
     </ul>
     

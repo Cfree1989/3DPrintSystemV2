@@ -16,7 +16,7 @@ class Job(db.Model):
     color = db.Column(db.String(32), nullable=True)
     material = db.Column(db.String(32), nullable=True)     # Entered by staff
     weight_g = db.Column(db.Float, nullable=True)          # Entered by staff
-    time_min = db.Column(db.Integer, nullable=True)        # Entered by staff
+    time_hours = db.Column(db.Float, nullable=True)        # Entered by staff (in hours)
     cost_usd = db.Column(db.Numeric(6, 2), nullable=True)  # Calculated
     student_confirmed = db.Column(db.Boolean, default=False, nullable=False)
     student_confirmed_at = db.Column(db.DateTime, nullable=True)

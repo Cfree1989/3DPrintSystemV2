@@ -46,7 +46,7 @@
                 
                 <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="font-weight: 600; color: #374151;">Estimated Print Time:</span>
-                    <span style="color: #111827;">{{ job.time_min }} minutes</span>
+                    <span style="color: #111827;">{{ job.time_hours | round_time }} hours</span>
                 </div>
                 
                 <div style="display: flex; justify-content: space-between; padding: 1rem 0; background: #fef3c7; margin: 0 -1rem -1rem -1rem; padding-left: 1rem; padding-right: 1rem; border-radius: 0 0 8px 8px;">

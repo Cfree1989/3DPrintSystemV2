@@ -96,7 +96,7 @@ class SubmissionForm(FlaskForm):
         ('prusa_mk4s', 'Prusa MK4S'),
         ('prusa_xl', 'Prusa XL'),
         ('raise3d_pro2plus', 'Raise3D Pro 2 Plus'),
-        ('formlabs_form3', 'Formlabs Form 3')
+        ('formlabs_form3', 'Form 3')
     ]
     printer_selection = SelectField('Which printer do you think your model fits on?', choices=printer_choices, validators=[SelectRequired(message="Please select a printer.")])
     

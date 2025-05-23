@@ -5,6 +5,7 @@ Utility functions for display formatting and other helper functions.
 
 from datetime import datetime
 import pytz
+import math
 
 def get_display_name(value, field_type=None):
     """
@@ -37,7 +38,7 @@ def get_printer_display_name(printer_key):
         'prusa_mk4s': 'Prusa MK4S',
         'prusa_xl': 'Prusa XL', 
         'raise3d_pro2plus': 'Raise3D Pro 2 Plus',
-        'formlabs_form3': 'Formlabs Form 3'
+        'formlabs_form3': 'Form 3'
     }
     return printer_names.get(printer_key, printer_key.replace('_', ' ').title())
 
@@ -149,6 +150,32 @@ def format_datetime_detailed(dt):
     local_dt = dt.astimezone(central)
     
     return local_dt.strftime('%B %d, %Y at %I:%M %p %Z')
+
+def round_time_conservative(time_hours):
+    """
+    Round time to nearest 0.5 hours, always rounding UP for conservative estimates.
+    
+    Args:
+        time_hours: Time in hours (float)
+    
+    Returns:
+        Time rounded up to nearest 0.5 hours (float)
+    
+    Examples:
+        1.2 hours → 1.5 hours
+        1.6 hours → 2.0 hours
+        2.1 hours → 2.5 hours
+        2.5 hours → 2.5 hours (no change)
+        2.0 hours → 2.0 hours (no change)
+    """
+    if not time_hours or time_hours <= 0:
+        return 0.5  # Minimum realistic print time
+    
+    # Calculate how many 0.5-hour increments we need
+    increments = math.ceil(time_hours / 0.5)
+    
+    # Convert back to hours
+    return increments * 0.5
 
 # Placeholder for general helper functions
 pass 

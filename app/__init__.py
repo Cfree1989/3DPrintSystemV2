@@ -25,12 +25,13 @@ def create_app(config_class_name="default"):
     # Register template filters for display formatting
     from .utils.helpers import (
         get_printer_display_name, get_color_display_name, get_discipline_display_name,
-        format_datetime_local, format_datetime_detailed
+        format_datetime_local, format_datetime_detailed, round_time_conservative
     )
     app.jinja_env.filters['printer_name'] = get_printer_display_name
     app.jinja_env.filters['color_name'] = get_color_display_name
     app.jinja_env.filters['discipline_name'] = get_discipline_display_name
     app.jinja_env.filters['local_datetime'] = format_datetime_local
     app.jinja_env.filters['detailed_datetime'] = format_datetime_detailed
+    app.jinja_env.filters['round_time'] = round_time_conservative
 
     return app 

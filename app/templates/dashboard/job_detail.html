@@ -26,10 +26,10 @@
         <div>
             <h3 style="margin-bottom: 1rem; color: #111827;">Print Details</h3>
             <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px;">
-                                <p><strong>Print Method:</strong> {{ job.printer|printer_name }}</p>                <p><strong>Color:</strong> {{ job.color|color_name }}</p>
+                                <p><strong>Printer:</strong> {{ job.printer|printer_name }}</p>                <p><strong>Color:</strong> {{ job.color|color_name }}</p>
                 <p><strong>Material:</strong> {{ job.material or 'Not specified' }}</p>
                 <p><strong>Weight:</strong> {{ job.weight_g }}g {% if not job.weight_g %}<em>(To be estimated)</em>{% endif %}</p>
-                <p><strong>Time:</strong> {{ job.time_min }} minutes {% if not job.time_min %}<em>(To be estimated)</em>{% endif %}</p>
+                <p><strong>Time:</strong> {{ job.time_hours | round_time }} hours {% if not job.time_hours %}<em>(To be estimated)</em>{% endif %}</p>
                 <p><strong>Cost:</strong> ${{ "%.2f"|format(job.cost_usd or 0) }} {% if not job.cost_usd %}<em>(To be calculated)</em>{% endif %}</p>
             </div>
         </div>
@@ -87,8 +87,8 @@
             </div>
             
             <div class="form-group">
-                <label>Estimated Print Time (minutes)</label>
-                <input type="number" name="time_min" min="1" max="10080" required style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 6px;">
+                <label>Estimated Print Time (hours)</label>
+                                    <input type="number" name="time_hours" min="0.1" max="168" step="0.1" required style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 6px;">
             </div>
             
             <div class="form-group">

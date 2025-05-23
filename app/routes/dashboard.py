@@ -145,15 +145,19 @@ def approve_job(job_id):
         
         # Get form data
         weight_g = float(request.form.get('weight_g', 0))
-        time_min = int(request.form.get('time_min', 0))
+        time_hours_raw = float(request.form.get('time_hours', 0))
         material = request.form.get('material', '').strip()
         
-        if weight_g <= 0 or time_min <= 0 or not material:
+        if weight_g <= 0 or time_hours_raw <= 0 or not material:
             flash('Please provide valid weight, time, and material.', 'error')
             return redirect(url_for('dashboard.job_detail', job_id=job_id))
         
+        # Apply conservative time rounding (always round up to nearest 0.5 hours)
+        from app.utils.helpers import round_time_conservative
+        time_hours = round_time_conservative(time_hours_raw)
+        
         # Calculate cost
-        cost = calculate_cost(job.printer, weight_g, time_min)
+        cost = calculate_cost(job.printer, weight_g, time_hours)
         
         # Generate confirmation token
         token, token_expires = generate_confirmation_token(job.id)
@@ -161,7 +165,7 @@ def approve_job(job_id):
         # Update job record
         job.status = 'PENDING'
         job.weight_g = weight_g
-        job.time_min = time_min
+        job.time_hours = time_hours
         job.material = material
         job.cost_usd = cost
         job.confirm_token = token
