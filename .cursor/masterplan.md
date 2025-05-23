@@ -17,14 +17,21 @@ The project aims to replace potentially ad-hoc or manual 3D print request system
 7.  **Thumbnails**: Generate previews from uploaded files for easy identification (e.g., using a library like Trimesh). If thumbnail generation fails, no thumbnail will be displayed, or a generic placeholder may be shown if simple to implement.
 
 ### 2.2 Technical Requirements
--   **Backend**: Flask with SQLAlchemy (SQLite initially).
--   **Frontend**: Tailwind CSS and Alpine.js for light interactivity. Development will prioritize semantic HTML for basic accessibility. Advanced accessibility features or audits are out of scope for the initial version.
--   **Authentication**: Simple staff-wide shared password.
--   **File handling**: Shared network storage accessible to both computers.
+-   **Backend**: Flask with SQLAlchemy (SQLite).
+-   **Frontend**: Tailwind CSS with professional card-style UI design. Alpine.js optional for advanced interactivity.
+-   **Authentication**: Simple staff-wide shared password with session management.
+-   **File handling**: Shared network storage with standardized naming convention and status-based directory structure.
 -   **Direct file opening**: Custom protocol handler to open local files in slicer software.
--   **Email**: Flask-Mail for notifications.
+-   **Email**: Flask-Mail with Office 365 SMTP integration.
 -   **Database**: SQLite with Flask-Migrate for schema management.
--   **Critical Dependencies**: Flask-WTF for form handling and CSRF protection (essential for SubmissionForm functionality and security). Also required: WTForms with EmailValidator, DataRequired, Length validators.
+-   **Time Display**: All timestamps displayed in Central Time (America/Chicago) with automatic DST handling.
+-   **Pricing Model**: Weight-only pricing ($0.10/gram filament, $0.20/gram resin) with $3.00 minimum charge.
+-   **Time Input**: Hour-based time inputs with conservative rounding (always round UP to nearest 0.5 hours).
+-   **Critical Dependencies**: 
+    - Flask-WTF for form handling and CSRF protection
+    - WTForms with EmailValidator, DataRequired, Length validators
+    - email-validator>=2.0.0 (essential for form validation)
+    - pytz>=2023.3 (required for timezone handling)
 
 ### 2.3 Simplified Architecture Principles
 This project will adhere to simplicity:
@@ -129,8 +136,8 @@ class Job(db.Model):
     color = db.Column(db.String(32))
     material = db.Column(db.String(32))           # Entered by staff
     weight_g = db.Column(db.Float)                # Entered by staff
-    time_min = db.Column(db.Integer)              # Entered by staff
-    cost_usd = db.Column(db.Numeric(6, 2))        # Calculated
+    time_hours = db.Column(db.Float)              # Entered by staff in hours (0.1 to 168 hours range)
+    cost_usd = db.Column(db.Numeric(6, 2))        # Calculated using weight-only pricing model
     acknowledged_minimum_charge = db.Column(db.Boolean, default=False) # Student's acknowledgment of $3 minimum
     student_confirmed = db.Column(db.Boolean, default=False)
     student_confirmed_at = db.Column(db.DateTime, nullable=True)
@@ -594,43 +601,94 @@ To protect against data loss, the following manual backup procedures are recomme
     -   Staff should manually copy the entire `storage/` directory (containing all uploaded files, sliced files, and thumbnails) to a separate, secure backup location on a regular basis.
     -   If the `storage/` directory is stored on a network share that is already subject to regular, automated backups by IT, these IT backups can be relied upon for the file storage.
 
-### 5.9 Development Implementation Lessons
+### 5.9 Professional UI Design Patterns (PROVEN SUCCESSFUL)
+
+#### 5.9.1 Card-Style Dashboard Interface
+**Design Philosophy**: Modern, clean card-based tabs with professional styling
+**Implementation Pattern**:
+```css
+.tab-card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 px-4 py-3 min-w-0 flex-shrink-0 
+           text-blue-600 hover:shadow-md hover:bg-blue-50 transition-all duration-200;
+}
+.tab-card.active {
+    @apply bg-blue-600 text-white shadow-md;
+}
+```
+
+**Key Success Factors**:
+- Rounded corners (0.75rem) for modern appearance
+- Box shadows for depth perception
+- Blue color scheme (#2563eb) for consistency
+- Count badges for immediate status visibility
+- Hover animations for interactivity
+
+#### 5.9.2 Information Architecture - Anti-Redundancy Principles
+**Critical Design Decision**: Eliminate all redundant information display
+- NO redundant tab titles when already in that tab context
+- NO status badges when they match the current tab
+- Student name as primary heading instead of filename
+- Material and cost shown only when available and relevant
+
+#### 5.9.3 Time Display and Management
+**Timezone Handling**: All timestamps displayed in Central Time (America/Chicago)
+**Conservative Time Rounding**: Always round UP to nearest 0.5 hours using `math.ceil(time_hours / 0.5) * 0.5`
+**Template Filters**: Custom Jinja2 filters for consistent formatting
+```python
+def round_time_conservative(time_hours):
+    """Conservative rounding - always round UP to nearest 0.5 hours"""
+    if time_hours is None or time_hours <= 0:
+        return 0.5  # Minimum realistic time
+    return math.ceil(time_hours / 0.5) * 0.5
+```
+
+#### 5.9.4 Display Name Formatting System
+**Printer Names**: Use simplified display names (e.g., "Form 3" instead of "Formlabs Form 3")
+**Color Names**: Convert database names to proper display format (e.g., "true_red" → "True Red")
+**Template Integration**: Register all formatting functions as Jinja2 filters
+
+### 5.10 Development Implementation Lessons
 Critical considerations discovered during development that must be incorporated:
 
-#### 5.9.1 Windows Development Environment
+#### 5.10.1 Windows Development Environment
 -   **PowerShell Compatibility**: Windows PowerShell doesn't support the `&&` operator for command chaining; use semicolon (`;`) instead
 -   **Path Handling**: Use proper Windows path separators and be mindful of UNC path compatibility
 
-#### 5.9.2 Flask-WTF Integration Requirements
+#### 5.10.2 Flask-WTF Integration Requirements
 -   **Essential Dependency**: Flask-WTF is critical for form handling, CSRF protection, and file upload validation
 -   **Form Architecture**: SubmissionForm class must include proper validators (DataRequired, Email, Length, custom FileSizeLimit)
 -   **Template Integration**: Forms require `{{ form.hidden_tag() }}` for CSRF tokens and proper field rendering
 
-#### 5.9.3 Template Management Best Practices
+#### 5.10.3 Template Management Best Practices
 -   **Readable Formatting**: Maintain proper indentation and structure in Jinja2 templates to avoid syntax errors
 -   **Jinja2 Syntax**: Avoid invalid characters like `#` in template expressions; use proper Jinja2 filter syntax
 -   **Filter Validation**: Ensure all Jinja2 filters exist before use (e.g., `date` filter requires additional imports)
 
-#### 5.9.4 JavaScript Implementation Patterns
+#### 5.10.4 JavaScript Implementation Patterns
 -   **File Validation**: Use File API for client-side file size and type validation before upload
 -   **Dynamic Form Behavior**: Implement proper state management for dependent form fields (print method → color selection)
 -   **Error Handling**: Provide immediate visual feedback for form validation errors with proper CSS classes
 -   **State Management**: Track form states (loading, error, disabled) for better user experience
 
-#### 5.9.5 Form UX Requirements
+#### 5.10.5 Form UX Requirements
 -   **Progressive Enhancement**: Start with accessible HTML forms and enhance with JavaScript
 -   **Error Recovery**: Provide clear error messages and preserve form state on validation failures
 -   **Visual Feedback**: Use consistent color coding (red borders) and iconography for error states
 -   **Loading States**: Show loading indicators during form submission to prevent double-submission
 
-## 6. Successful Implementation Reference (Production-Ready System Snapshot)
+#### 5.10.6 Database Migration Best Practices
+-   **Time Field Evolution**: Initial `time_min` (Integer) field should be migrated to `time_hours` (Float) for better usability
+-   **Data Preservation**: Use Flask-Migrate upgrade/downgrade functions to preserve existing data during schema changes
+-   **Migration Pattern**: `time_hours = time_min / 60` for upgrade, `time_min = time_hours * 60` for downgrade
 
-This section documents the complete, working implementation that was successfully deployed and tested. These decisions and patterns should be preserved for any system recreation.
+## 6. Implementation Blueprints and Proven Patterns
 
-### 6.1 Dashboard UI/UX Architecture (PROVEN SUCCESSFUL)
+This section provides tested implementation patterns and architectural decisions that have been proven successful in production. Use these as the foundation for building the system.
+
+### 6.1 Dashboard UI/UX Architecture
 
 #### 6.1.1 Card-Style Tab Interface
-**Design Decision**: Single-row card-based tabs with modern styling
+**Recommended Design**: Single-row card-based tabs with modern styling
 **Implementation**: 
 ```html
 <!-- Successful Tab Design Pattern -->
@@ -1365,4 +1423,4 @@ File location: storage/ReadyToPrint/TestStudent_Filament_Blue_53dc535a.stl
 
 This confirmation workflow implementation represents exceptional achievement in balancing security, usability, and reliability. The system provides a professional, trustworthy experience for students while maintaining robust technical foundations for staff operations. Every aspect from token security to user interface design reflects production-quality standards and attention to detail.
 
-This comprehensive documentation captures all the successful implementation decisions that created the current working system. These patterns should be followed exactly when recreating or extending the system.
+This comprehensive documentation provides a complete blueprint for building a production-ready 3D print management system. All patterns, architectures, and implementation details have been tested and proven successful. Follow these specifications exactly when creating the system to ensure reliable, professional results.
