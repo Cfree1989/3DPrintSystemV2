@@ -18,11 +18,7 @@
         <div>
             <h3 style="margin-bottom: 1rem; color: #111827;">Student Information</h3>
             <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px;">
-                <p><strong>Name:</strong> {{ job.student_name }}</p>
-                <p><strong>Email:</strong> {{ job.student_email }}</p>
-                <p><strong>Discipline:</strong> {{ job.discipline or 'Not specified' }}</p>
-                <p><strong>Class:</strong> {{ job.class_number or 'Not specified' }}</p>
-                <p><strong>Min. Charge Acknowledged:</strong> {{ 'Yes' if job.acknowledged_minimum_charge else 'No' }}</p>
+                                <p><strong>Name:</strong> {{ job.student_name }}</p>                <p><strong>Email:</strong> {{ job.student_email }}</p>                <p><strong>Discipline:</strong> {{ job.discipline|discipline_name if job.discipline else 'Not specified' }}</p>                <p><strong>Class:</strong> {{ job.class_number or 'Not specified' }}</p>                <p><strong>Min. Charge Acknowledged:</strong> {{ 'Yes' if job.acknowledged_minimum_charge else 'No' }}</p>
             </div>
         </div>
         
@@ -30,8 +26,7 @@
         <div>
             <h3 style="margin-bottom: 1rem; color: #111827;">Print Details</h3>
             <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px;">
-                <p><strong>Print Method:</strong> {{ job.printer }}</p>
-                <p><strong>Color:</strong> {{ job.color }}</p>
+                                <p><strong>Print Method:</strong> {{ job.printer|printer_name }}</p>                <p><strong>Color:</strong> {{ job.color|color_name }}</p>
                 <p><strong>Material:</strong> {{ job.material or 'Not specified' }}</p>
                 <p><strong>Weight:</strong> {{ job.weight_g }}g {% if not job.weight_g %}<em>(To be estimated)</em>{% endif %}</p>
                 <p><strong>Time:</strong> {{ job.time_min }} minutes {% if not job.time_min %}<em>(To be estimated)</em>{% endif %}</p>
@@ -51,11 +46,7 @@
     <!-- Timestamps -->
     <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
         <h3 style="margin-bottom: 1rem; color: #111827;">Timeline</h3>
-        <p><strong>Submitted:</strong> {{ job.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
-        <p><strong>Last Updated:</strong> {{ job.updated_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
-        {% if job.student_confirmed_at %}
-        <p><strong>Student Confirmed:</strong> {{ job.student_confirmed_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
-        {% endif %}
+                <p><strong>Submitted:</strong> {{ job.created_at|detailed_datetime }}</p>        <p><strong>Last Updated:</strong> {{ job.updated_at|detailed_datetime }}</p>        {% if job.student_confirmed_at %}        <p><strong>Student Confirmed:</strong> {{ job.student_confirmed_at|detailed_datetime }}</p>        {% endif %}
     </div>
     
     <!-- Actions -->
@@ -117,7 +108,7 @@
             
             <div style="background: #f3f4f6; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
                 <p style="margin: 0; font-size: 0.9rem; color: #374151;">
-                    <strong>Note:</strong> Cost will be calculated automatically based on the selected printer ({{ job.printer }}) with a minimum charge of $3.00.
+                    <strong>Note:</strong> Cost will be calculated automatically based on the selected printer ({{ job.printer|printer_name }}) with a minimum charge of $3.00.
                 </p>
             </div>
             

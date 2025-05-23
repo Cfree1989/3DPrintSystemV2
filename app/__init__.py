@@ -22,5 +22,15 @@ def create_app(config_class_name="default"):
     from .routes.dashboard import dashboard as dashboard_blueprint
     app.register_blueprint(dashboard_blueprint, url_prefix='/dashboard')
 
-    # print("App created successfully with blueprints and extensions.") # Debug
+    # Register template filters for display formatting
+    from .utils.helpers import (
+        get_printer_display_name, get_color_display_name, get_discipline_display_name,
+        format_datetime_local, format_datetime_detailed
+    )
+    app.jinja_env.filters['printer_name'] = get_printer_display_name
+    app.jinja_env.filters['color_name'] = get_color_display_name
+    app.jinja_env.filters['discipline_name'] = get_discipline_display_name
+    app.jinja_env.filters['local_datetime'] = format_datetime_local
+    app.jinja_env.filters['detailed_datetime'] = format_datetime_detailed
+
     return app 
