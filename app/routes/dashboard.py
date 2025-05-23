@@ -2,9 +2,14 @@
 """
 Dashboard routes for staff authentication and job management.
 """
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, current_app, jsonify
 from app.models.job import Job
 from app.extensions import db
+from app.services.cost_service import calculate_cost, get_printer_display_name
+from app.services.email_service import send_approval_email, send_rejection_email
+from app.services.file_service import FileService
+from app.utils.tokens import generate_confirmation_token
+from datetime import datetime
 
 dashboard = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
@@ -85,6 +90,122 @@ def job_detail(job_id):
     return render_template('dashboard/job_detail.html', 
                          title=f'Job {job_id[:8]}',
                          job=job)
+
+@dashboard.route('/job/<job_id>/approve', methods=['POST'])
+@login_required
+def approve_job(job_id):
+    """Approve a job and move it to PENDING status."""
+    try:
+        job = Job.query.get_or_404(job_id)
+        
+        if job.status != 'UPLOADED':
+            flash('Only uploaded jobs can be approved.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Get form data
+        weight_g = float(request.form.get('weight_g', 0))
+        time_min = int(request.form.get('time_min', 0))
+        material = request.form.get('material', '').strip()
+        
+        if weight_g <= 0 or time_min <= 0 or not material:
+            flash('Please provide valid weight, time, and material.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Calculate cost
+        cost = calculate_cost(job.printer, weight_g, time_min)
+        
+        # Generate confirmation token
+        token, token_expires = generate_confirmation_token(job.id)
+        
+        # Update job record
+        job.status = 'PENDING'
+        job.weight_g = weight_g
+        job.time_min = time_min
+        job.material = material
+        job.cost_usd = cost
+        job.confirm_token = token
+        job.confirm_token_expires = token_expires
+        job.updated_at = datetime.utcnow()
+        job.last_updated_by = 'staff'
+        
+        # Move file from Uploaded to Pending
+        try:
+            new_file_path = FileService.move_file(
+                job.file_path, 'Uploaded', 'Pending', job.display_name
+            )
+            job.file_path = new_file_path
+        except Exception as e:
+            current_app.logger.error(f"Error moving file for job {job_id}: {str(e)}")
+            flash('Error moving file. Please try again.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Save changes
+        db.session.commit()
+        
+        # Send approval email
+        email_sent = send_approval_email(job)
+        if email_sent:
+            flash(f'Job approved and confirmation email sent to {job.student_email}', 'success')
+        else:
+            flash('Job approved but email failed to send. Please contact student manually.', 'warning')
+        
+        return redirect(url_for('dashboard.index'))
+        
+    except ValueError as e:
+        current_app.logger.error(f"Cost calculation error for job {job_id}: {str(e)}")
+        flash('Error calculating cost. Please check printer selection.', 'error')
+        return redirect(url_for('dashboard.job_detail', job_id=job_id))
+    except Exception as e:
+        current_app.logger.error(f"Error approving job {job_id}: {str(e)}")
+        db.session.rollback()
+        flash('Error approving job. Please try again.', 'error')
+        return redirect(url_for('dashboard.job_detail', job_id=job_id))
+
+@dashboard.route('/job/<job_id>/reject', methods=['POST'])
+@login_required
+def reject_job(job_id):
+    """Reject a job and move it to REJECTED status."""
+    try:
+        job = Job.query.get_or_404(job_id)
+        
+        if job.status != 'UPLOADED':
+            flash('Only uploaded jobs can be rejected.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Get rejection reasons
+        rejection_reasons = request.form.getlist('rejection_reasons')
+        custom_reason = request.form.get('custom_reason', '').strip()
+        
+        if custom_reason:
+            rejection_reasons.append(custom_reason)
+        
+        if not rejection_reasons:
+            flash('Please provide at least one rejection reason.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Update job record
+        job.status = 'REJECTED'
+        job.reject_reasons = rejection_reasons
+        job.updated_at = datetime.utcnow()
+        job.last_updated_by = 'staff'
+        
+        # Save changes
+        db.session.commit()
+        
+        # Send rejection email
+        email_sent = send_rejection_email(job, rejection_reasons)
+        if email_sent:
+            flash(f'Job rejected and notification email sent to {job.student_email}', 'success')
+        else:
+            flash('Job rejected but email failed to send. Please contact student manually.', 'warning')
+        
+        return redirect(url_for('dashboard.index'))
+        
+    except Exception as e:
+        current_app.logger.error(f"Error rejecting job {job_id}: {str(e)}")
+        db.session.rollback()
+        flash('Error rejecting job. Please try again.', 'error')
+        return redirect(url_for('dashboard.job_detail', job_id=job_id))
 
 # Placeholder for other dashboard routes like job_detail, job actions etc.
 

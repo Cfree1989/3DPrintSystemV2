@@ -22,6 +22,7 @@
                 <p><strong>Email:</strong> {{ job.student_email }}</p>
                 <p><strong>Discipline:</strong> {{ job.discipline or 'Not specified' }}</p>
                 <p><strong>Class:</strong> {{ job.class_number or 'Not specified' }}</p>
+                <p><strong>Min. Charge Acknowledged:</strong> {{ 'Yes' if job.acknowledged_minimum_charge else 'No' }}</p>
             </div>
         </div>
         
@@ -32,9 +33,9 @@
                 <p><strong>Print Method:</strong> {{ job.printer }}</p>
                 <p><strong>Color:</strong> {{ job.color }}</p>
                 <p><strong>Material:</strong> {{ job.material or 'Not specified' }}</p>
-                <p><strong>Weight:</strong> {{ job.weight_g }}g</p>
-                <p><strong>Time:</strong> {{ job.time_min }} minutes</p>
-                <p><strong>Cost:</strong> ${{ "%.2f"|format(job.cost_usd or 0) }}</p>
+                <p><strong>Weight:</strong> {{ job.weight_g }}g {% if not job.weight_g %}<em>(To be estimated)</em>{% endif %}</p>
+                <p><strong>Time:</strong> {{ job.time_min }} minutes {% if not job.time_min %}<em>(To be estimated)</em>{% endif %}</p>
+                <p><strong>Cost:</strong> ${{ "%.2f"|format(job.cost_usd or 0) }} {% if not job.cost_usd %}<em>(To be calculated)</em>{% endif %}</p>
             </div>
         </div>
     </div>
@@ -63,10 +64,142 @@
         <h3 style="margin-bottom: 1rem; color: #111827;">Staff Actions</h3>
         <p style="margin-bottom: 1rem; color: #6b7280;">This job is awaiting staff review and approval.</p>
         <div style="display: flex; gap: 1rem;">
-            <button class="btn btn-success">Approve</button>
-            <button class="btn btn-danger">Reject</button>
+            <button class="btn btn-success" onclick="showApprovalModal()">Approve</button>
+            <button class="btn btn-danger" onclick="showRejectionModal()">Reject</button>
         </div>
     </div>
     {% endif %}
+    
+    <!-- Rejection Information (if rejected) -->
+    {% if job.status == 'REJECTED' and job.reject_reasons %}
+    <div style="background: #fee2e2; border: 2px solid #fca5a5; padding: 1.5rem; border-radius: 8px;">
+        <h3 style="margin-bottom: 1rem; color: #991b1b;">Rejection Reasons</h3>
+        <ul style="margin: 0; padding-left: 1.5rem; color: #991b1b;">
+            {% for reason in job.reject_reasons %}
+            <li>{{ reason }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 </div>
+
+<!-- Approval Modal -->
+<div id="approvalModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px;">
+        <h3 style="margin-bottom: 1rem;">Approve Job {{ job.id[:8] }}</h3>
+        <p style="margin-bottom: 1.5rem; color: #6b7280;">Enter the estimated print parameters to calculate cost and send confirmation email to {{ job.student_email }}.</p>
+        
+        <form method="POST" action="{{ url_for('dashboard.approve_job', job_id=job.id) }}">
+            <div class="form-group">
+                <label>Estimated Weight (grams)</label>
+                <input type="number" name="weight_g" step="0.1" min="0.1" max="10000" required style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 6px;">
+            </div>
+            
+            <div class="form-group">
+                <label>Estimated Print Time (minutes)</label>
+                <input type="number" name="time_min" min="1" max="10080" required style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 6px;">
+            </div>
+            
+            <div class="form-group">
+                <label>Material</label>
+                <select name="material" required style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 6px;">
+                    <option value="">Select material...</option>
+                    <option value="PLA">PLA</option>
+                    <option value="PLA+">PLA+</option>
+                    <option value="PETG">PETG</option>
+                    <option value="ABS">ABS</option>
+                    <option value="TPU">TPU</option>
+                    <option value="Standard Resin">Standard Resin</option>
+                    <option value="Tough Resin">Tough Resin</option>
+                    <option value="Clear Resin">Clear Resin</option>
+                </select>
+            </div>
+            
+            <div style="background: #f3f4f6; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                <p style="margin: 0; font-size: 0.9rem; color: #374151;">
+                    <strong>Note:</strong> Cost will be calculated automatically based on the selected printer ({{ job.printer }}) with a minimum charge of $3.00.
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="hideApprovalModal()">Cancel</button>
+                <button type="submit" class="btn btn-success">Approve & Email Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div id="rejectionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px;">
+        <h3 style="margin-bottom: 1rem;">Reject Job {{ job.id[:8] }}</h3>
+        <p style="margin-bottom: 1.5rem; color: #6b7280;">Select reasons for rejection. An email will be sent to {{ job.student_email }} with these reasons.</p>
+        
+        <form method="POST" action="{{ url_for('dashboard.reject_job', job_id=job.id) }}">
+            <div class="form-group">
+                <label>Rejection Reasons (select all that apply):</label>
+                <div style="margin-top: 0.5rem;">
+                    <label style="display: block; font-weight: normal; margin-bottom: 0.5rem;">
+                        <input type="checkbox" name="rejection_reasons" value="Non-manifold geometry"> Non-manifold geometry
+                    </label>
+                    <label style="display: block; font-weight: normal; margin-bottom: 0.5rem;">
+                        <input type="checkbox" name="rejection_reasons" value="Walls too thin"> Walls too thin
+                    </label>
+                    <label style="display: block; font-weight: normal; margin-bottom: 0.5rem;">
+                        <input type="checkbox" name="rejection_reasons" value="Unprintable features"> Unprintable features
+                    </label>
+                    <label style="display: block; font-weight: normal; margin-bottom: 0.5rem;">
+                        <input type="checkbox" name="rejection_reasons" value="File errors or corruption"> File errors or corruption
+                    </label>
+                    <label style="display: block; font-weight: normal; margin-bottom: 0.5rem;">
+                        <input type="checkbox" name="rejection_reasons" value="Model too large for selected printer"> Model too large for selected printer
+                    </label>
+                    <label style="display: block; font-weight: normal; margin-bottom: 0.5rem;">
+                        <input type="checkbox" name="rejection_reasons" value="Model not properly scaled"> Model not properly scaled
+                    </label>
+                    <label style="display: block; font-weight: normal; margin-bottom: 0.5rem;">
+                        <input type="checkbox" name="rejection_reasons" value="Inappropriate content"> Inappropriate content
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Additional details or custom reason:</label>
+                <textarea name="custom_reason" rows="3" style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 6px;" placeholder="Enter any additional details..."></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="hideRejectionModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Reject & Email Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showApprovalModal() {
+    document.getElementById('approvalModal').style.display = 'block';
+}
+
+function hideApprovalModal() {
+    document.getElementById('approvalModal').style.display = 'none';
+}
+
+function showRejectionModal() {
+    document.getElementById('rejectionModal').style.display = 'block';
+}
+
+function hideRejectionModal() {
+    document.getElementById('rejectionModal').style.display = 'none';
+}
+
+// Close modals when clicking outside
+document.getElementById('approvalModal').addEventListener('click', function(e) {
+    if (e.target === this) hideApprovalModal();
+});
+
+document.getElementById('rejectionModal').addEventListener('click', function(e) {
+    if (e.target === this) hideRejectionModal();
+});
+</script>
 {% endblock %} 
