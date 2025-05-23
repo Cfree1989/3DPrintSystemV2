@@ -147,6 +147,29 @@ class FileService:
         return new_path
     
     @staticmethod
+    def move_file_between_status_dirs(current_path: str, from_status: str, to_status: str) -> str:
+        """
+        Move file between status directories (convenience wrapper).
+        
+        Args:
+            current_path: Current full path to the file
+            from_status: Current status directory name (e.g., "PENDING")
+            to_status: Target status directory name (e.g., "READYTOPRINT")
+            
+        Returns:
+            New file path after moving
+            
+        Raises:
+            OSError: If file move fails
+            ValueError: If paths are invalid
+        """
+        # Extract the filename from current path
+        filename = os.path.basename(current_path)
+        
+        # Use the existing move_file method
+        return FileService.move_file(current_path, from_status, to_status, filename)
+    
+    @staticmethod
     def file_exists(file_path: str) -> bool:
         """Check if a file exists at the given path."""
         return os.path.exists(file_path) if file_path else False
@@ -157,7 +180,4 @@ class FileService:
         try:
             return os.path.getsize(file_path) if os.path.exists(file_path) else 0
         except OSError:
-            return 0
-
-# print("file_service.py loaded (placeholder).") # Debug
-pass 
+            return 0 
