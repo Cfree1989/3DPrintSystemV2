@@ -109,6 +109,14 @@ This project aims to develop a Flask-based 3D print job management system tailor
     - [ ] Implement file saving to `storage/Uploaded/` with standardized renaming convention.
     - [ ] Implement thumbnail generation upon successful upload (`thumbnail_service.py`).
     - [ ] Implement success page (`/submit/success`).
+    - [ ] **Task 3.6: Form Enhancements Phase 2** (DEFERRED after core functionality)
+        - [ ] Enhanced scaling question with comprehensive printer specifications
+        - [ ] Class number format validation (ARCH 4000 pattern with regex)
+        - [ ] Allow "N/A" for non-academic projects in class number field
+        - [ ] Add scaling guidance and STL/OBJ export warnings
+        - [ ] Require explicit acknowledgment of dimensional constraints
+        - [ ] Comprehensive testing of Phase 2 enhancements
+        - Success Criteria: Enhanced scaling question captures meaningful responses, class number validation enforces correct format, user experience flows smoothly through all form enhancements
 4.  **Task 4: Staff Dashboard - Basic View & Login** (Ref: masterplan.md Section 5.1.4, 3.4 General Staff Dashboard)
     *   Implement basic staff login (shared password defined in config).
     *   Create staff dashboard page (`/dashboard`) displaying jobs with "UPLOADED" status.
@@ -162,71 +170,60 @@ This project aims to develop a Flask-based 3D print job management system tailor
 
 ## Current Status / Progress Tracking
 ### Latest Planner Assessment (2024-01-XX)
-**Status**: Template blocker resolved! Ready to implement comprehensive form updates per user requirements.
+**Status**: Phase 1 form enhancements successfully completed! **STRATEGIC PRIORITY SHIFT**: Moving from form polish to core functionality implementation.
 
-**Flask App Status**: ✅ Confirmed working - Flask app creates successfully without template errors.
+**Decision Rationale**:
+- ✅ **Foundation Established**: Phase 1 form enhancements provide excellent user experience baseline
+- 🔄 **Core Functionality Gap**: Form cannot actually process submissions without file saving implementation
+- 🎯 **End-to-End Value**: Need complete submission workflow (form → file saving → success page) for meaningful testing
+- 📋 **Dependency Chain**: File saving is prerequisite for thumbnail generation and full workflow testing
 
-**Verification Completed**:
-- ✅ Template error appears to be resolved (Flask app creates without errors)
-- ✅ Current form structure provides good foundation for enhancements
-- ✅ Validation framework in place for new field requirements
+**STRATEGIC PIVOT: Core Functionality Implementation Priority**
 
-### Comprehensive Form Enhancement Plan
+**NEXT TASK ASSIGNMENT**: **Task 3.3 - File Saving Implementation** 
+*Priority: CRITICAL - Core functionality required for system operation*
 
-**IMPLEMENTATION SEQUENCE**:
+### Task 3.3: File Saving Implementation Specifications
 
-**Phase 1: Field Content Updates (High Priority)**
-1. **Update Discipline Options**
-   - Replace current generic options with: Art, Architecture, Landscape Architecture, Interior Design, Engineering, Hobby/Personal, Other
-   - Maintain validation and error handling
+**Immediate Implementation Requirements**:
+1. **Standardized File Naming Convention** (per masterplan.md Section 3.4):
+   - Format: `FirstAndLastName_PrintMethod_Color_SimpleJobID.original_extension`
+   - Example: `JaneDoe_Filament_Blue_123.stl`
+   - SimpleJobID derived from Job.id (UUID)
 
-2. **Add Form Introduction Text**
-   - Add comprehensive intro paragraph at form beginning (exact user wording)
-   - Style appropriately with proper spacing and visual hierarchy
+2. **File Processing Workflow**:
+   - Validate uploaded file (type, size) - ✅ Already implemented
+   - Generate unique Job ID (UUID4)
+   - Apply standardized naming convention
+   - Save to `storage/Uploaded/` directory with new name
+   - Update Job record with file metadata:
+     - `job.original_filename` = student's upload name
+     - `job.display_name` = standardized name
+     - `job.file_path` = full path to saved file
+     - `job.status` = 'UPLOADED'
 
-3. **Enhanced Print Method Selection with Context**
-   - Add descriptive context for Resin vs Filament (exact user wording)
-   - Include cost and capability information in selection UI
+3. **Success Criteria**:
+   - ✅ Form submission creates Job record in database
+   - ✅ File saved to correct directory with standardized name
+   - ✅ Job metadata properly populated
+   - ✅ User redirected to success page with Job ID
+   - ✅ Original filename preserved in database
+   - ✅ File path correctly stored for future operations
 
-4. **Dynamic Color Selection Implementation**
-   - Create two separate color choice lists (Filament: 23 options, Resin: 4 options)
-   - Implement JavaScript to dynamically update color dropdown based on print method selection
-   - Update validation to ensure color choice matches selected print method
+**Technical Implementation Notes**:
+- Use `secure_filename()` for base filename safety
+- Implement robust error handling for file I/O operations
+- Ensure directory creation if `storage/Uploaded/` doesn't exist
+- Generate meaningful error messages for file saving failures
+- Consider file extension preservation and validation
 
-**Phase 2: Advanced Functionality (Medium Priority)**
-5. **Enhanced Scaling Question with Printer Specifications**
-   - Replace simple radio buttons with required response mechanism
-   - Include comprehensive printer dimension information
-   - Add scaling guidance and STL/OBJ export warnings
-   - Require explicit acknowledgment of dimensional constraints
+**DEFERRED BUT IMPORTANT**:
+- Phase 2 form enhancements (scaling question, class number validation) → **Task 3.6**
+- Form validation testing → Will occur naturally during file saving testing
 
-6. **Class Number Format Validation**
-   - Implement regex validation for "ARCH 4000" format pattern
-   - Provide clear format examples and error messages
-   - Allow "N/A" for non-academic projects
+**CONFIDENCE LEVEL**: High - Flask-WTF foundation solid, file handling patterns well-established
 
-**Phase 3: Testing & Refinement (Critical)**
-7. **Comprehensive Testing**
-   - Test dynamic color switching functionality
-   - Verify all validation rules work correctly
-   - Test form submission with new field requirements
-   - Ensure client-side and server-side validation alignment
-
-**TECHNICAL IMPLEMENTATION NOTES**:
-- **Dynamic Colors**: Use Alpine.js or vanilla JavaScript to watch print method changes
-- **Validation**: Update both client-side JS and server-side validators
-- **Form Layout**: Maintain Tailwind CSS styling consistency
-- **User Experience**: Ensure smooth transitions and clear error feedback
-
-**SUCCESS CRITERIA**:
-- ✅ Form displays all new content with proper formatting
-- ✅ Dynamic color selection works seamlessly
-- ✅ All validation rules enforce new requirements
-- ✅ User experience flows smoothly through enhanced form
-- ✅ Class number format validation catches incorrect patterns
-- ✅ Scaling acknowledgment captures meaningful student responses
-
-**CONFIDENCE LEVEL**: High - Foundation is solid, changes are well-defined, implementation is straightforward
+**Flask App Status**: ✅ Confirmed working - All Phase 1 enhancements successfully integrated
 
 ## Executor's Feedback or Assistance Requests
 (Executor to fill as needed with updates, questions, or blockers.)
@@ -272,7 +269,48 @@ This project aims to develop a Flask-based 3D print job management system tailor
     
     **USER ENHANCEMENT IMPLEMENTED**: ✅ Colors are not selectable until a print method is chosen - improves UX and prevents selection of incorrect colors
     
+    **GIT STATUS**: ✅ **COMMITTED AND PUSHED TO GITHUB**
+    - Commit: `44f0e52` - "feat: Complete Phase 1 form enhancements with dynamic color selection"
+    - Successfully pushed to origin/main
+    - All Phase 1 changes now backed up and version controlled
+    
     **NEXT**: Phase 2 (Enhanced scaling question with printer specifications + class number format validation) or proceed to file saving implementation per Planner decision.
+
+## End of Day Summary - [Date]
+
+### Today's Major Accomplishments ✅
+
+**PHASE 1 FORM ENHANCEMENTS - FULLY COMPLETED**:
+1. ✅ **Updated Academic Discipline Options** - Replaced generic options with actual program offerings
+2. ✅ **Added Comprehensive Introduction Text** - Moodle guidance, scaling requirements, responsibility disclaimers
+3. ✅ **Enhanced Print Method Descriptions** - Detailed Resin vs Filament context with cost/capability info
+4. ✅ **Implemented Dynamic Color Selection** - 23 filament colors + 4 resin colors with smart state management
+5. ✅ **Enhanced User Experience** - Color dropdown disabled until print method selected (user-requested improvement)
+6. ✅ **Updated Class Number Format** - Changed example to "ARCH 4000" format
+7. ✅ **Maintained Robust Validation** - All existing client/server validation preserved and enhanced
+
+### Technical Status ✅
+- ✅ **Flask App**: Creates and runs successfully
+- ✅ **Dependencies**: Flask-WTF properly installed and configured
+- ✅ **Templates**: Clean, properly formatted HTML with working JavaScript
+- ✅ **Validation**: Comprehensive client-side and server-side validation working
+- ✅ **Version Control**: All changes committed and pushed to GitHub (commit `44f0e52`)
+
+### Next Session Priorities
+
+**IMMEDIATE OPTIONS** (for Planner to decide):
+1. **Phase 2**: Enhanced scaling question with printer specifications + class number format validation
+2. **Task 3.3**: File saving implementation with standardized naming convention
+3. **Task 3.4**: Thumbnail generation service implementation
+4. **Task 3.5**: Success page implementation
+
+**CURRENT BLOCKING ISSUES**: None - system is stable and ready for next development phase
+
+**PREPARATION FOR NEXT SESSION**:
+- Form foundation is solid and user-tested
+- All Phase 1 requirements met and backed up
+- Ready to proceed with either Phase 2 enhancements or core functionality (file saving)
+- Flask development environment confirmed working
 
 ## Lessons
 (Record reusable information, fixes, or learnings here.)

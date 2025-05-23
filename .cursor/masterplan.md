@@ -149,7 +149,7 @@ class Job(db.Model):
 
 ### 3.4 Comprehensive Job Lifecycle: Statuses, Backend Processes, and UI Workflows
 
-**Note on Original File Preservation:** Throughout the job lifecycle, the original file uploaded by the student (and referenced by `job.original_filename`) will be preserved in its initial storage location (e.g., within the `storage/Uploaded/` directory). This file will not be moved or deleted when staff create a sliced version that becomes the authoritative `job.file_path` for printing. The original uploaded file will only be removed according to the Data Retention Policy (see Section 5.X), ensuring it remains available for historical reference or if re-slicing is needed.
+**Note on Original File Preservation:** Throughout the job lifecycle, the original file uploaded by the student (and referenced by `job.original_filename`) will be preserved in its initial storage location (e.g., within the `storage/Uploaded/` directory). This file will not be moved or deleted when staff create a sliced version that becomes the authoritative `job.file_path` for printing. The original uploaded file will only be removed according to the Data Retention Policy (see Section 5.7), ensuring it remains available for historical reference or if re-slicing is needed.
 
 This section details the progression of a job through the system, including file management and automated communications. The authoritative file for a job is the one most recently processed and relevant for its current status (e.g., original upload, or staff-sliced file). The "Open File" button always targets this authoritative file.
 
