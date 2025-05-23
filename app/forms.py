@@ -57,9 +57,10 @@ class SubmissionForm(FlaskForm):
     ]
     print_method = SelectField('Print Method', choices=print_method_choices, validators=[SelectRequired(message="Please select a print method.")])
     
-    # Comprehensive color lists for both filament and resin
-    filament_color_choices = [
+    # Combined color choices for server-side validation (JavaScript will filter display)
+    all_color_choices = [
         ('', '-- Select Color --'),
+        # Filament colors
         ('true_red', 'True Red'),
         ('true_orange', 'True Orange'),
         ('light_orange', 'Light Orange'),
@@ -82,19 +83,12 @@ class SubmissionForm(FlaskForm):
         ('true_silver', 'True Silver'),
         ('true_gold', 'True Gold'),
         ('glow_in_dark', 'Glow in the Dark'),
-        ('color_changing', 'Color Changing')
-    ]
-    
-    resin_color_choices = [
-        ('', '-- Select Color --'),
+        ('color_changing', 'Color Changing'),
+        # Resin colors (keeping separate 'black', 'white' for resin to avoid conflicts)
         ('black', 'Black'),
-        ('white', 'White'),
-        ('gray', 'Gray'),
-        ('clear', 'Clear')
+        ('white', 'White')
     ]
-    
-    # Default to filament colors initially - will be updated dynamically
-    color_preference = SelectField('Color Preference', choices=filament_color_choices, validators=[SelectRequired(message="Please select a color preference.")])
+    color_preference = SelectField('Color Preference', choices=all_color_choices, validators=[SelectRequired(message="Please select a color preference.")])
     
     # New printer selection field
     printer_choices = [

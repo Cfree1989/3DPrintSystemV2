@@ -30,6 +30,19 @@
         color: red;
         font-size: 0.875rem;
       }
+      .alert-error {
+        color: #dc2626;
+        background-color: #fef2f2;
+        border: 1px solid #fecaca;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+      }
+      .form-control.error {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 1px #dc2626;
+      }
     </style>
 {% endblock %}
 
@@ -111,10 +124,11 @@
 
         <div class="form-group">
             {{ form.printer_selection.label(class="form-label") }}
-            {{ form.printer_selection(class="form-control") }}
+            {{ form.printer_selection(class="form-control", id="printerSelect", disabled=true) }}
             {% if form.printer_selection.errors %}
                 <div class="alert alert-error">{{ form.printer_selection.errors[0] }}</div>
             {% endif %}
+            <div id="printerHelp" style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">Please select a print method first</div>
         </div>
 
         <div class="form-group">
@@ -147,26 +161,41 @@
 document.addEventListener('DOMContentLoaded', function() {
     const printMethod = document.getElementById('printMethod');
     const colorSelect = document.getElementById('colorSelect');
+    const printerSelect = document.getElementById('printerSelect');
     const colorHelp = document.getElementById('colorHelp');
+    const printerHelp = document.getElementById('printerHelp');
     const methodHelp = document.getElementById('methodHelp');
     const fileInput = document.getElementById('fileInput');
     const submitBtn = document.getElementById('submitBtn');
     
-    // Color options
+    // Color options - values must match the form definition in forms.py
     const filamentColors = [
         ['', 'Select a color...'],
-        ['True Red', 'True Red'], ['True Orange', 'True Orange'], ['Light Orange', 'Light Orange'],
-        ['True Yellow', 'True Yellow'], ['Dark Yellow', 'Dark Yellow'], ['Lime Green', 'Lime Green'],
-        ['Green', 'Green'], ['Forest Green', 'Forest Green'], ['Blue', 'Blue'], ['Electric Blue', 'Electric Blue'],
-        ['Midnight Purple', 'Midnight Purple'], ['Light Purple', 'Light Purple'], ['Clear', 'Clear'],
-        ['True White', 'True White'], ['Gray', 'Gray'], ['True Black', 'True Black'], ['Brown', 'Brown'],
-        ['Copper', 'Copper'], ['Bronze', 'Bronze'], ['True Silver', 'True Silver'], ['True Gold', 'True Gold'],
-        ['Glow in the Dark', 'Glow in the Dark'], ['Color Changing', 'Color Changing']
+        ['true_red', 'True Red'], ['true_orange', 'True Orange'], ['light_orange', 'Light Orange'],
+        ['true_yellow', 'True Yellow'], ['dark_yellow', 'Dark Yellow'], ['lime_green', 'Lime Green'],
+        ['green', 'Green'], ['forest_green', 'Forest Green'], ['blue', 'Blue'], ['electric_blue', 'Electric Blue'],
+        ['midnight_purple', 'Midnight Purple'], ['light_purple', 'Light Purple'], ['clear', 'Clear'],
+        ['true_white', 'True White'], ['gray', 'Gray'], ['true_black', 'True Black'], ['brown', 'Brown'],
+        ['copper', 'Copper'], ['bronze', 'Bronze'], ['true_silver', 'True Silver'], ['true_gold', 'True Gold'],
+        ['glow_in_dark', 'Glow in the Dark'], ['color_changing', 'Color Changing']
     ];
     
     const resinColors = [
         ['', 'Select a color...'],
-        ['Black', 'Black'], ['White', 'White'], ['Gray', 'Gray'], ['Clear', 'Clear']
+        ['black', 'Black'], ['white', 'White'], ['gray', 'Gray'], ['clear', 'Clear']
+    ];
+    
+    // Printer options - values must match the form definition in forms.py
+    const filamentPrinters = [
+        ['', 'Select a printer...'],
+        ['prusa_mk4s', 'Prusa MK4S'],
+        ['prusa_xl', 'Prusa XL'],
+        ['raise3d_pro2plus', 'Raise3D Pro 2 Plus']
+    ];
+    
+    const resinPrinters = [
+        ['', 'Select a printer...'],
+        ['formlabs_form3', 'Formlabs Form 3']
     ];
     
     // Method descriptions
@@ -175,26 +204,75 @@ document.addEventListener('DOMContentLoaded', function() {
         'Resin': 'Description: Super high resolution and detail. Slow. Best For: Small items. Cost: More expensive.'
     };
     
-    printMethod.addEventListener('change', function() {
-        const method = this.value;
+    // Function to update color and printer options based on print method
+    function updateMethodDependentOptions() {
+        const method = printMethod.value;
+        const selectedColor = colorSelect.value;
+        const selectedPrinter = printerSelect.value;
+        
+        // Clear both dropdowns
         colorSelect.innerHTML = '';
+        printerSelect.innerHTML = '';
         
         if (method) {
+            // Enable both dropdowns
             colorSelect.disabled = false;
+            printerSelect.disabled = false;
+            
+            // Update help text
             colorHelp.textContent = `Select a ${method.toLowerCase()} color`;
+            printerHelp.textContent = `Select a ${method.toLowerCase()} printer`;
             methodHelp.textContent = methodDescriptions[method] || '';
             
+            // Populate color options
             const colors = method === 'Filament' ? filamentColors : resinColors;
             colors.forEach(function(color) {
                 const option = document.createElement('option');
                 option.value = color[0];
                 option.textContent = color[1];
+                // Preserve selected color if it's valid for the current method
+                if (color[0] === selectedColor) {
+                    option.selected = true;
+                }
                 colorSelect.appendChild(option);
             });
+            
+            // Populate printer options
+            const printers = method === 'Filament' ? filamentPrinters : resinPrinters;
+            printers.forEach(function(printer) {
+                const option = document.createElement('option');
+                option.value = printer[0];
+                option.textContent = printer[1];
+                // Preserve selected printer if it's valid for the current method
+                if (printer[0] === selectedPrinter) {
+                    option.selected = true;
+                }
+                printerSelect.appendChild(option);
+            });
         } else {
+            // Disable both dropdowns
             colorSelect.disabled = true;
+            printerSelect.disabled = true;
             colorHelp.textContent = 'Please select a print method first';
+            printerHelp.textContent = 'Please select a print method first';
             methodHelp.textContent = '';
+        }
+    }
+    
+    // Run on page load to handle preserved form state after validation errors
+    updateMethodDependentOptions();
+    
+    // Run when print method changes
+    printMethod.addEventListener('change', updateMethodDependentOptions);
+    
+    // Add error styling to fields with validation errors
+    document.querySelectorAll('.alert-error').forEach(function(errorDiv) {
+        const formGroup = errorDiv.closest('.form-group');
+        if (formGroup) {
+            const input = formGroup.querySelector('.form-control');
+            if (input) {
+                input.classList.add('error');
+            }
         }
     });
     
