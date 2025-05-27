@@ -7,7 +7,7 @@ Create a `.env` file in the project root with the following content:
 ```env
 # 3D Print System Environment Configuration
 # Flask Core Configuration
-SECRET_KEY=659edf9ec83ff3d0b30f857c944f4163eccd30923400fbd4350feb988052b2ee
+SECRET_KEY=GENERATE_YOUR_OWN_SECRET_KEY_HERE
 FLASK_APP=app.py
 FLASK_CONFIG=development
 DEBUG=True
@@ -79,10 +79,12 @@ python app.py
 
 ## Security Notes
 
-- The SECRET_KEY in this guide is already generated securely
+- **IMPORTANT**: Generate your own SECRET_KEY using: `python -c "import secrets; print(secrets.token_hex(32))"`
+- Replace `GENERATE_YOUR_OWN_SECRET_KEY_HERE` with your generated key
 - Keep your .env file secure and never commit it to version control
 - Change the STAFF_PASSWORD from "Fabrication" to something more secure for production
 - Update email credentials with actual values for production deployment
+- Never share your SECRET_KEY publicly or commit it to version control
 
 ## Troubleshooting
 
