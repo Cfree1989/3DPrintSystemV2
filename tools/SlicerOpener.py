@@ -20,6 +20,136 @@ import os
 import subprocess
 from pathlib import Path
 import configparser
+import logging
+import logging.handlers
+from datetime import datetime
+
+
+def setup_logging(debug=False):
+    """
+    Set up logging system with file rotation and appropriate log levels.
+    
+    Args:
+        debug (bool): Enable debug level logging
+        
+    Returns:
+        logging.Logger: Configured logger instance
+    """
+    # Create logs directory if it doesn't exist
+    script_dir = Path(__file__).parent
+    log_dir = script_dir / "logs"
+    log_dir.mkdir(exist_ok=True)
+    
+    # Configure log file path
+    log_file = log_dir / "slicer_opener.log"
+    
+    # Create logger
+    logger = logging.getLogger('SlicerOpener')
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
+    
+    # Remove existing handlers to avoid duplicates
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+    
+    # Create rotating file handler (max 5MB, keep 5 backup files)
+    file_handler = logging.handlers.RotatingFileHandler(
+        log_file, 
+        maxBytes=5*1024*1024,  # 5MB
+        backupCount=5,
+        encoding='utf-8'
+    )
+    
+    # Create console handler for errors and debug output
+    console_handler = logging.StreamHandler()
+    
+    # Set log levels
+    file_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.ERROR if not debug else logging.DEBUG)
+    
+    # Create formatters
+    file_formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    
+    # Add formatters to handlers
+    file_handler.setFormatter(file_formatter)
+    console_handler.setFormatter(console_formatter)
+    
+    # Add handlers to logger
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    return logger
+
+
+def log_file_access_attempt(logger, url, file_path, result, details=None):
+    """
+    Log file access attempt with comprehensive details.
+    
+    Args:
+        logger (logging.Logger): Logger instance
+        url (str): Original URL received
+        file_path (str): Requested file path
+        result (str): Result of access attempt (SUCCESS, SECURITY_ERROR, FILE_ERROR, SLICER_ERROR)
+        details (str): Additional details about the result
+    """
+    # Sanitize sensitive information from logs
+    safe_url = url[:100] + "..." if len(url) > 100 else url
+    safe_path = file_path[:200] + "..." if len(file_path) > 200 else file_path
+    
+    log_message = f"File access attempt - URL: {safe_url} | Path: {safe_path} | Result: {result}"
+    if details:
+        log_message += f" | Details: {details}"
+    
+    if result == "SUCCESS":
+        logger.info(log_message)
+    elif result == "SECURITY_ERROR":
+        logger.warning(log_message)
+    else:
+        logger.error(log_message)
+
+
+def log_slicer_launch(logger, slicer_name, slicer_path, file_path, success=True, error_details=None):
+    """
+    Log slicer launch attempt with details.
+    
+    Args:
+        logger (logging.Logger): Logger instance
+        slicer_name (str): Name of the slicer software
+        slicer_path (str): Path to slicer executable
+        file_path (str): File being opened
+        success (bool): Whether launch was successful
+        error_details (str): Error details if launch failed
+    """
+    safe_slicer_path = slicer_path[:100] + "..." if len(slicer_path) > 100 else slicer_path
+    safe_file_path = file_path[:200] + "..." if len(file_path) > 200 else file_path
+    
+    if success:
+        logger.info(f"Slicer launched successfully - {slicer_name} at {safe_slicer_path} | File: {safe_file_path}")
+    else:
+        logger.error(f"Slicer launch failed - {slicer_name} at {safe_slicer_path} | File: {safe_file_path} | Error: {error_details}")
+
+
+def log_security_validation(logger, file_path, authorized_paths, result, blocked_reason=None):
+    """
+    Log security validation details for audit trail.
+    
+    Args:
+        logger (logging.Logger): Logger instance
+        file_path (str): File path being validated
+        authorized_paths (list): List of authorized storage paths
+        result (bool): Whether validation passed
+        blocked_reason (str): Reason for blocking if validation failed
+    """
+    safe_path = file_path[:200] + "..." if len(file_path) > 200 else file_path
+    auth_count = len(authorized_paths)
+    
+    if result:
+        logger.info(f"Security validation PASSED - Path: {safe_path} | Authorized directories: {auth_count}")
+    else:
+        logger.warning(f"Security validation FAILED - Path: {safe_path} | Reason: {blocked_reason} | Authorized directories: {auth_count}")
 
 
 class SecurityError(Exception):
@@ -57,7 +187,7 @@ def get_authorized_storage_paths():
     return [str(Path(p).resolve()) for p in authorized_paths]
 
 
-def validate_file_security(file_path, debug=False):
+def validate_file_security(file_path, debug=False, logger=None):
     """
     Validate that the file path is within authorized storage directories.
     
@@ -67,6 +197,7 @@ def validate_file_security(file_path, debug=False):
     Args:
         file_path (str): The file path to validate
         debug (bool): Enable debug output
+        logger (logging.Logger): Logger instance for audit trail
         
     Returns:
         str: The validated absolute file path
@@ -116,16 +247,19 @@ def validate_file_security(file_path, debug=False):
                     break
         
         if not path_is_authorized:
-            raise SecurityError(
-                f"File path not within authorized storage directories. "
-                f"Path: {abs_path_str}"
-            )
+            blocked_reason = f"File path not within authorized storage directories. Path: {abs_path_str}"
+            if logger:
+                log_security_validation(logger, file_path, authorized_paths, False, blocked_reason)
+            raise SecurityError(blocked_reason)
         
         # Additional security checks
         
         # Block network paths
         if abs_path_str.startswith('\\\\') or abs_path_str.startswith('//'):
-            raise SecurityError("Network paths are not allowed for security reasons")
+            blocked_reason = "Network paths are not allowed for security reasons"
+            if logger:
+                log_security_validation(logger, file_path, authorized_paths, False, blocked_reason)
+            raise SecurityError(blocked_reason)
         
         # Block system directories (Windows)
         system_dirs = [
@@ -138,7 +272,10 @@ def validate_file_security(file_path, debug=False):
         
         for sys_dir in system_dirs:
             if abs_path_str.lower().startswith(sys_dir.lower()):
-                raise SecurityError(f"Access to system directory '{sys_dir}' is not allowed")
+                blocked_reason = f"Access to system directory '{sys_dir}' is not allowed"
+                if logger:
+                    log_security_validation(logger, file_path, authorized_paths, False, blocked_reason)
+                raise SecurityError(blocked_reason)
         
         # Block parent directory traversal patterns in the original path
         if '..' in file_path:
@@ -146,6 +283,10 @@ def validate_file_security(file_path, debug=False):
             # but we want to be extra cautious
             if debug:
                 print("Debug: Warning - parent directory traversal pattern detected in original path")
+        
+        # Log successful validation
+        if logger:
+            log_security_validation(logger, file_path, authorized_paths, True)
         
         return abs_path_str
         
@@ -285,7 +426,7 @@ def detect_slicer_for_file(file_path, debug=False):
     return slicer_path
 
 
-def launch_slicer(slicer_path, file_path, debug=False):
+def launch_slicer(slicer_path, file_path, debug=False, logger=None):
     """
     Launch the slicer software with the specified file.
     
@@ -293,11 +434,15 @@ def launch_slicer(slicer_path, file_path, debug=False):
         slicer_path (str): Path to the slicer executable
         file_path (str): Path to the 3D file to open
         debug (bool): Enable debug output
+        logger (logging.Logger): Logger instance for audit trail
         
     Raises:
         SlicerError: If the slicer fails to launch
     """
     import subprocess
+    
+    # Determine slicer name from path
+    slicer_name = Path(slicer_path).stem
     
     try:
         if debug:
@@ -316,14 +461,27 @@ def launch_slicer(slicer_path, file_path, debug=False):
         if debug:
             print(f"Debug: Slicer launched with PID: {process.pid}")
         
+        # Log successful launch
+        if logger:
+            log_slicer_launch(logger, slicer_name, slicer_path, file_path, success=True)
+        
         # Don't wait for the process to complete - let it run independently
         
-    except FileNotFoundError:
-        raise SlicerError(f"Slicer executable not found: {slicer_path}")
-    except PermissionError:
-        raise SlicerError(f"Permission denied launching slicer: {slicer_path}")
+    except FileNotFoundError as e:
+        error_msg = f"Slicer executable not found: {slicer_path}"
+        if logger:
+            log_slicer_launch(logger, slicer_name, slicer_path, file_path, success=False, error_details=str(e))
+        raise SlicerError(error_msg)
+    except PermissionError as e:
+        error_msg = f"Permission denied launching slicer: {slicer_path}"
+        if logger:
+            log_slicer_launch(logger, slicer_name, slicer_path, file_path, success=False, error_details=str(e))
+        raise SlicerError(error_msg)
     except Exception as e:
-        raise SlicerError(f"Failed to launch slicer: {str(e)}")
+        error_msg = f"Failed to launch slicer: {str(e)}"
+        if logger:
+            log_slicer_launch(logger, slicer_name, slicer_path, file_path, success=False, error_details=str(e))
+        raise SlicerError(error_msg)
 
 
 def parse_arguments():
@@ -408,19 +566,26 @@ def parse_protocol_url(url):
 
 def main():
     """Main entry point for the SlicerOpener script."""
+    logger = None
+    
     try:
         # Parse command line arguments
         args = parse_arguments()
+        
+        # Enable debug output if requested
+        debug = args.debug
+        
+        # Set up logging system (Step 1.4)
+        logger = setup_logging(debug)
+        logger.info("SlicerOpener started")
         
         # Show help if no URL provided
         if not args.url:
             print("SlicerOpener.py - 3D Print File Protocol Handler")
             print("Usage: python SlicerOpener.py \"3dprint://open?file=<encoded_path>\"")
             print("Use --help for more information")
+            logger.info("Help displayed - no URL provided")
             return 0
-        
-        # Enable debug output if requested
-        debug = args.debug
         
         if debug:
             print(f"Debug: Received URL: {args.url}")
@@ -434,21 +599,27 @@ def main():
                 print(f"Debug: Successfully parsed file path: {file_path}")
             
         except ValueError as e:
-            print(f"ERROR: {str(e)}")
+            error_msg = str(e)
+            print(f"ERROR: {error_msg}")
+            log_file_access_attempt(logger, args.url, "UNKNOWN", "URL_PARSE_ERROR", error_msg)
             return 1
         
         # Security validation (Step 1.2)
         try:
-            validated_path = validate_file_security(file_path, debug)
+            validated_path = validate_file_security(file_path, debug, logger)
             if debug:
                 print(f"Debug: Security validation passed for: {validated_path}")
         except SecurityError as e:
-            print(f"SECURITY ERROR: {str(e)}")
+            error_msg = str(e)
+            print(f"SECURITY ERROR: {error_msg}")
+            log_file_access_attempt(logger, args.url, file_path, "SECURITY_ERROR", error_msg)
             return 1
         
         # File existence check (Step 1.3)
         if not os.path.exists(validated_path):
-            print(f"ERROR: File not found: {validated_path}")
+            error_msg = f"File not found: {validated_path}"
+            print(f"ERROR: {error_msg}")
+            log_file_access_attempt(logger, args.url, file_path, "FILE_ERROR", error_msg)
             return 1
         
         if debug:
@@ -460,23 +631,32 @@ def main():
             if debug:
                 print(f"Debug: Selected slicer: {slicer_path}")
             
-            launch_slicer(slicer_path, validated_path, debug)
+            launch_slicer(slicer_path, validated_path, debug, logger)
             print(f"SUCCESS: File opened in slicer: {os.path.basename(validated_path)}")
             
+            # Log successful file access
+            log_file_access_attempt(logger, args.url, file_path, "SUCCESS", f"Opened in {Path(slicer_path).stem}")
+            
         except SlicerError as e:
-            print(f"SLICER ERROR: {str(e)}")
+            error_msg = str(e)
+            print(f"SLICER ERROR: {error_msg}")
+            log_file_access_attempt(logger, args.url, file_path, "SLICER_ERROR", error_msg)
             return 1
         
-        # TODO: Add logging (Step 1.4)
-        
         print("SUCCESS: URL parsing completed")
+        logger.info("SlicerOpener completed successfully")
         return 0
         
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")
+        if logger:
+            logger.info("Operation cancelled by user")
         return 1
     except Exception as e:
-        print(f"UNEXPECTED ERROR: {str(e)}")
+        error_msg = str(e)
+        print(f"UNEXPECTED ERROR: {error_msg}")
+        if logger:
+            logger.error(f"Unexpected error: {error_msg}")
         return 1
 
 
