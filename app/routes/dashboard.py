@@ -252,6 +252,138 @@ def reject_job(job_id):
         flash('Error rejecting job. Please try again.', 'error')
         return redirect(url_for('dashboard.job_detail', job_id=job_id))
 
-# Placeholder for other dashboard routes like job_detail, job actions etc.
+@dashboard.route('/job/<job_id>/mark_printing', methods=['POST'])
+@login_required
+def mark_printing(job_id):
+    """Mark a job as currently printing (READYTOPRINT → PRINTING)."""
+    try:
+        job = Job.query.get_or_404(job_id)
+        
+        if job.status != 'READYTOPRINT':
+            flash('Only ready-to-print jobs can be marked as printing.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Update job record
+        job.status = 'PRINTING'
+        job.updated_at = datetime.utcnow()
+        job.last_updated_by = 'staff'
+        
+        # Move file from ReadyToPrint to Printing
+        try:
+            new_file_path = FileService.move_file(
+                job.file_path, 'ReadyToPrint', 'Printing', job.display_name
+            )
+            job.file_path = new_file_path
+        except Exception as e:
+            current_app.logger.error(f"Error moving file for job {job_id}: {str(e)}")
+            flash('Error moving file. Please try again.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Save changes
+        db.session.commit()
+        
+        flash(f'Job {job_id[:8]} marked as printing.', 'success')
+        return redirect(url_for('dashboard.index'))
+        
+    except Exception as e:
+        current_app.logger.error(f"Error marking job {job_id} as printing: {str(e)}")
+        db.session.rollback()
+        flash('Error updating job status. Please try again.', 'error')
+        return redirect(url_for('dashboard.job_detail', job_id=job_id))
+
+@dashboard.route('/job/<job_id>/mark_complete', methods=['POST'])
+@login_required
+def mark_complete(job_id):
+    """Mark a job as completed (PRINTING → COMPLETED)."""
+    try:
+        job = Job.query.get_or_404(job_id)
+        
+        if job.status != 'PRINTING':
+            flash('Only printing jobs can be marked as completed.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Update job record
+        job.status = 'COMPLETED'
+        job.updated_at = datetime.utcnow()
+        job.last_updated_by = 'staff'
+        
+        # Move file from Printing to Completed
+        try:
+            new_file_path = FileService.move_file(
+                job.file_path, 'Printing', 'Completed', job.display_name
+            )
+            job.file_path = new_file_path
+        except Exception as e:
+            current_app.logger.error(f"Error moving file for job {job_id}: {str(e)}")
+            flash('Error moving file. Please try again.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Save changes
+        db.session.commit()
+        
+        # Send completion email
+        from app.services.email_service import send_completion_email
+        email_sent = send_completion_email(job)
+        if email_sent:
+            flash(f'Job {job_id[:8]} marked as completed and pickup notification sent to {job.student_email}.', 'success')
+        else:
+            flash(f'Job {job_id[:8]} marked as completed but email failed to send. Please contact student manually.', 'warning')
+        
+        return redirect(url_for('dashboard.index'))
+        
+    except Exception as e:
+        current_app.logger.error(f"Error marking job {job_id} as complete: {str(e)}")
+        db.session.rollback()
+        flash('Error updating job status. Please try again.', 'error')
+        return redirect(url_for('dashboard.job_detail', job_id=job_id))
+
+@dashboard.route('/job/<job_id>/mark_picked_up', methods=['POST'])
+@login_required
+def mark_picked_up(job_id):
+    """Mark a job as picked up and paid (COMPLETED → PAIDPICKEDUP)."""
+    try:
+        job = Job.query.get_or_404(job_id)
+        
+        if job.status != 'COMPLETED':
+            flash('Only completed jobs can be marked as picked up.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Get payment confirmation (optional)
+        payment_notes = request.form.get('payment_notes', '').strip()
+        
+        # Update job record
+        job.status = 'PAIDPICKEDUP'
+        job.updated_at = datetime.utcnow()
+        job.last_updated_by = 'staff'
+        
+        # Store payment notes if provided
+        if payment_notes:
+            # Add payment notes to reject_reasons field (repurposing for general notes)
+            existing_notes = job.reject_reasons or []
+            existing_notes.append(f"Payment/Pickup Notes: {payment_notes}")
+            job.reject_reasons = existing_notes
+        
+        # Move file from Completed to PaidPickedUp
+        try:
+            new_file_path = FileService.move_file(
+                job.file_path, 'Completed', 'PaidPickedUp', job.display_name
+            )
+            job.file_path = new_file_path
+        except Exception as e:
+            current_app.logger.error(f"Error moving file for job {job_id}: {str(e)}")
+            flash('Error moving file. Please try again.', 'error')
+            return redirect(url_for('dashboard.job_detail', job_id=job_id))
+        
+        # Save changes
+        db.session.commit()
+        
+        flash(f'Job {job_id[:8]} marked as picked up and paid. Transaction complete!', 'success')
+        return redirect(url_for('dashboard.index'))
+        
+    except Exception as e:
+        current_app.logger.error(f"Error marking job {job_id} as picked up: {str(e)}")
+        db.session.rollback()
+        flash('Error updating job status. Please try again.', 'error')
+        return redirect(url_for('dashboard.job_detail', job_id=job_id))
 
 # print("Dashboard blueprint defined (functional).") # Debug 

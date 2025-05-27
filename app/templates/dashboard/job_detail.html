@@ -59,6 +59,38 @@
             <button class="btn btn-danger" onclick="showRejectionModal()">Reject</button>
         </div>
     </div>
+    {% elif job.status == 'PENDING' %}
+    <div style="background: #fef3c7; border: 2px solid #f59e0b; padding: 1.5rem; border-radius: 8px;">
+        <h3 style="margin-bottom: 1rem; color: #92400e;">Awaiting Student Confirmation</h3>
+        <p style="margin: 0; color: #92400e;">Student has been emailed and must confirm before printing can begin. No action needed.</p>
+    </div>
+    {% elif job.status == 'READYTOPRINT' %}
+    <div style="background: #dbeafe; border: 2px solid #3b82f6; padding: 1.5rem; border-radius: 8px;">
+        <h3 style="margin-bottom: 1rem; color: #1e40af;">Ready to Print</h3>
+        <p style="margin-bottom: 1rem; color: #1e40af;">Student has confirmed. Ready to start printing.</p>
+        <form method="POST" action="{{ url_for('dashboard.mark_printing', job_id=job.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-primary" onclick="return confirm('Mark this job as currently printing?')">Start Printing</button>
+        </form>
+    </div>
+    {% elif job.status == 'PRINTING' %}
+    <div style="background: #f3e8ff; border: 2px solid #8b5cf6; padding: 1.5rem; border-radius: 8px;">
+        <h3 style="margin-bottom: 1rem; color: #7c3aed;">Currently Printing</h3>
+        <p style="margin-bottom: 1rem; color: #7c3aed;">This job is currently being printed.</p>
+        <form method="POST" action="{{ url_for('dashboard.mark_complete', job_id=job.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-success" onclick="return confirm('Mark this job as completed and notify student for pickup?')">Mark Complete</button>
+        </form>
+    </div>
+    {% elif job.status == 'COMPLETED' %}
+    <div style="background: #d1fae5; border: 2px solid #10b981; padding: 1.5rem; border-radius: 8px;">
+        <h3 style="margin-bottom: 1rem; color: #047857;">Ready for Pickup</h3>
+        <p style="margin-bottom: 1rem; color: #047857;">Print completed. Student has been notified for pickup.</p>
+        <button class="btn btn-success" onclick="showPickupModal()">Mark Picked Up</button>
+    </div>
+    {% elif job.status == 'PAIDPICKEDUP' %}
+    <div style="background: #f0f9ff; border: 2px solid #0ea5e9; padding: 1.5rem; border-radius: 8px;">
+        <h3 style="margin-bottom: 1rem; color: #0369a1;">Transaction Complete</h3>
+        <p style="margin: 0; color: #0369a1;">Job completed and picked up. Transaction finished.</p>
+    </div>
     {% endif %}
     
     <!-- Rejection Information (if rejected) -->
@@ -167,6 +199,33 @@
     </div>
 </div>
 
+<!-- Pickup Modal -->
+<div id="pickupModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px;">
+        <h3 style="margin-bottom: 1rem;">Mark Job {{ job.id[:8] }} as Picked Up</h3>
+        <p style="margin-bottom: 1.5rem; color: #6b7280;">Confirm that the student has picked up their print and payment has been received.</p>
+        
+        <form method="POST" action="{{ url_for('dashboard.mark_picked_up', job_id=job.id) }}">
+            <div class="form-group">
+                <label>Payment/Pickup Notes (optional):</label>
+                <textarea name="payment_notes" rows="3" style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 6px;" placeholder="e.g., Cash payment received, Card payment processed, etc."></textarea>
+            </div>
+            
+            <div style="background: #f0fdf4; border: 2px solid #10b981; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                <p style="margin: 0; font-size: 0.9rem; color: #047857;">
+                    <strong>Final Cost:</strong> ${{ "%.2f"|format(job.cost_usd or 0) }}<br>
+                    <strong>Note:</strong> This will mark the job as completely finished.
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="hidePickupModal()">Cancel</button>
+                <button type="submit" class="btn btn-success">Confirm Pickup & Payment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 function showApprovalModal() {
     document.getElementById('approvalModal').style.display = 'block';
@@ -184,6 +243,14 @@ function hideRejectionModal() {
     document.getElementById('rejectionModal').style.display = 'none';
 }
 
+function showPickupModal() {
+    document.getElementById('pickupModal').style.display = 'block';
+}
+
+function hidePickupModal() {
+    document.getElementById('pickupModal').style.display = 'none';
+}
+
 // Close modals when clicking outside
 document.getElementById('approvalModal').addEventListener('click', function(e) {
     if (e.target === this) hideApprovalModal();
@@ -191,6 +258,10 @@ document.getElementById('approvalModal').addEventListener('click', function(e) {
 
 document.getElementById('rejectionModal').addEventListener('click', function(e) {
     if (e.target === this) hideRejectionModal();
+});
+
+document.getElementById('pickupModal').addEventListener('click', function(e) {
+    if (e.target === this) hidePickupModal();
 });
 </script>
 {% endblock %} 
