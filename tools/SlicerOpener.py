@@ -23,6 +23,15 @@ import configparser
 import logging
 import logging.handlers
 from datetime import datetime
+import threading
+
+# GUI error dialog support
+try:
+    import tkinter as tk
+    from tkinter import messagebox
+    TKINTER_AVAILABLE = True
+except ImportError:
+    TKINTER_AVAILABLE = False
 
 
 def setup_logging(debug=False):
@@ -564,6 +573,24 @@ def parse_protocol_url(url):
         raise ValueError(f"Failed to parse URL: {str(e)}")
 
 
+def show_error_popup(title, message):
+    """
+    Show a user-friendly error popup using tkinter. Non-blocking.
+    Falls back to console output if tkinter is unavailable.
+    """
+    def _popup():
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showerror(title, message)
+        root.destroy()
+    if TKINTER_AVAILABLE:
+        # Run in a separate thread to avoid blocking
+        t = threading.Thread(target=_popup)
+        t.start()
+    else:
+        print(f"ERROR: {title} - {message}")
+
+
 def main():
     """Main entry point for the SlicerOpener script."""
     logger = None
@@ -600,7 +627,7 @@ def main():
             
         except ValueError as e:
             error_msg = str(e)
-            print(f"ERROR: {error_msg}")
+            show_error_popup("URL Error", error_msg)
             log_file_access_attempt(logger, args.url, "UNKNOWN", "URL_PARSE_ERROR", error_msg)
             return 1
         
@@ -611,14 +638,14 @@ def main():
                 print(f"Debug: Security validation passed for: {validated_path}")
         except SecurityError as e:
             error_msg = str(e)
-            print(f"SECURITY ERROR: {error_msg}")
+            show_error_popup("Security Error", error_msg)
             log_file_access_attempt(logger, args.url, file_path, "SECURITY_ERROR", error_msg)
             return 1
         
         # File existence check (Step 1.3)
         if not os.path.exists(validated_path):
             error_msg = f"File not found: {validated_path}"
-            print(f"ERROR: {error_msg}")
+            show_error_popup("File Not Found", error_msg)
             log_file_access_attempt(logger, args.url, file_path, "FILE_ERROR", error_msg)
             return 1
         
@@ -639,7 +666,7 @@ def main():
             
         except SlicerError as e:
             error_msg = str(e)
-            print(f"SLICER ERROR: {error_msg}")
+            show_error_popup("Slicer Error", error_msg)
             log_file_access_attempt(logger, args.url, file_path, "SLICER_ERROR", error_msg)
             return 1
         
@@ -648,13 +675,13 @@ def main():
         return 0
         
     except KeyboardInterrupt:
-        print("\nOperation cancelled by user")
+        show_error_popup("Operation Cancelled", "Operation cancelled by user.")
         if logger:
             logger.info("Operation cancelled by user")
         return 1
     except Exception as e:
         error_msg = str(e)
-        print(f"UNEXPECTED ERROR: {error_msg}")
+        show_error_popup("Unexpected Error", error_msg)
         if logger:
             logger.error(f"Unexpected error: {error_msg}")
         return 1
